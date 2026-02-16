@@ -64,7 +64,7 @@ fun ErrorOverlay(
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF2C2C2C),
+                    containerColor = Color.White,
                 ),
             ) {
                 Column(
@@ -81,7 +81,7 @@ fun ErrorOverlay(
                     Text(
                         text = message,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = Color.Black,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(20.dp))
@@ -89,8 +89,8 @@ fun ErrorOverlay(
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color(0xFF2C2C2C),
+                            containerColor = Color.Black,
+                            contentColor = Color.White,
                         ),
                     ) {
                         Text("Aceptar")

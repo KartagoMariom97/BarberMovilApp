@@ -43,7 +43,15 @@ class BookingRepositoryImpl @Inject constructor(
             )
             Resource.Success(response.toDomain())
         } catch (e: HttpException) {
-            val msg = when (e.code()) {
+            val backendMsg = try {
+                val errorBody = e.response()?.errorBody()?.string()
+                errorBody?.let {
+                    val json = com.google.gson.JsonParser.parseString(it).asJsonObject
+                    json.get("message")?.asString
+                }
+            } catch (_: Exception) { null }
+
+            val msg = backendMsg ?: when (e.code()) {
                 400 -> "Datos de reserva inválidos. Verifica fecha, hora y servicios."
                 404 -> "Cliente o barbero no encontrado."
                 409 -> "Ya existe una reserva en ese horario."
@@ -86,7 +94,15 @@ class BookingRepositoryImpl @Inject constructor(
             val response = appointmentApi.cancelBooking(id)
             Resource.Success(response.toDomain())
         } catch (e: HttpException) {
-            val msg = when (e.code()) {
+            val backendMsg = try {
+                val errorBody = e.response()?.errorBody()?.string()
+                errorBody?.let {
+                    val json = com.google.gson.JsonParser.parseString(it).asJsonObject
+                    json.get("message")?.asString
+                }
+            } catch (_: Exception) { null }
+
+            val msg = backendMsg ?: when (e.code()) {
                 400 -> "No se puede cancelar esta reserva."
                 404 -> "Reserva no encontrada."
                 else -> "Error del servidor (${e.code()})"
