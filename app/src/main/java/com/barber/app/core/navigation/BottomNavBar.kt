@@ -29,13 +29,18 @@ val bottomNavItems = listOf(
 fun BottomNavBar(
     currentRoute: String?,
     onItemClick: (Screen) -> Unit,
+    onBeforeNavigate: ((Screen) -> Boolean)? = null,
 ) {
     NavigationBar {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.screen::class.qualifiedName
             NavigationBarItem(
                 selected = selected,
-                onClick = { onItemClick(item.screen) },
+                onClick = {
+                    if (onBeforeNavigate == null || onBeforeNavigate(item.screen)) {
+                        onItemClick(item.screen)
+                    }
+                },
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) },
             )

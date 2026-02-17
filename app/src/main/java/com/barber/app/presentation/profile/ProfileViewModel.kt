@@ -58,6 +58,7 @@ class ProfileViewModel @Inject constructor(
                             nombres = prefs.nombres,
                             email = prefs.email,
                             telefono = prefs.telefono,
+                            dni = prefs.dni,
                         ),
                         isLoading = false,
                     )
@@ -67,7 +68,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateProfile(nombres: String, email: String, telefono: String) {
+    fun updateProfile(nombres: String, email: String, telefono: String, dni: String) {
         viewModelScope.launch {
             val prefs = userPreferencesRepository.userPreferences.first()
             userPreferencesRepository.saveSession(
@@ -76,12 +77,14 @@ class ProfileViewModel @Inject constructor(
                 nombres = nombres,
                 email = email,
                 telefono = telefono,
+                dni = dni,
             )
             _state.value = _state.value.copy(
                 profile = _state.value.profile?.copy(
                     nombres = nombres,
                     email = email,
                     telefono = telefono,
+                    dni = dni,
                 )
             )
         }

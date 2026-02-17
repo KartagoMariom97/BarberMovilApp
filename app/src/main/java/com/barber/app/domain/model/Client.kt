@@ -13,4 +13,5 @@ data class ClientProfile(
     val nombres: String,
     val email: String,
     val telefono: String,
+    val dni: String = "",
 )

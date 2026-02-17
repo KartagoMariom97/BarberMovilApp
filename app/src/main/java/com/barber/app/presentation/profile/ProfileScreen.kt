@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
@@ -52,6 +53,7 @@ fun ProfileScreen(
     var editNombres by remember { mutableStateOf("") }
     var editEmail by remember { mutableStateOf("") }
     var editTelefono by remember { mutableStateOf("") }
+    var editDni by remember { mutableStateOf("") }
 
     LaunchedEffect(state.isLoggedOut) {
         if (state.isLoggedOut) onLogout()
@@ -87,11 +89,19 @@ fun ProfileScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = editDni,
+                        onValueChange = { editDni = it },
+                        label = { Text("DNI") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.updateProfile(editNombres, editEmail, editTelefono)
+                    viewModel.updateProfile(editNombres, editEmail, editTelefono, editDni)
                     showEditDialog = false
                 }) { Text("Guardar", color = Color.Black) }
             },
@@ -146,6 +156,13 @@ fun ProfileScreen(
                             Icon(Icons.Default.Phone, contentDescription = null)
                         },
                     )
+                    ListItem(
+                        headlineContent = { Text(state.profile?.dni?.ifBlank { "Sin DNI" } ?: "Sin DNI") },
+                        supportingContent = { Text("DNI") },
+                        leadingContent = {
+                            Icon(Icons.Default.Badge, contentDescription = null)
+                        },
+                    )
                 }
             }
 
@@ -156,6 +173,7 @@ fun ProfileScreen(
                     editNombres = state.profile?.nombres ?: ""
                     editEmail = state.profile?.email ?: ""
                     editTelefono = state.profile?.telefono ?: ""
+                    editDni = state.profile?.dni ?: ""
                     showEditDialog = true
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),

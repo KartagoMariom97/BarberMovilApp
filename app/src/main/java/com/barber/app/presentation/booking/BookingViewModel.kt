@@ -101,6 +101,10 @@ class BookingViewModel @Inject constructor(
         _state.value = _state.value.copy(error = null)
     }
 
+    fun resetState() {
+        _state.value = BookingState(barbers = _state.value.barbers)
+    }
+
     fun nextStep() {
         val s = _state.value
         when (s.currentStep) {
@@ -137,6 +141,14 @@ class BookingViewModel @Inject constructor(
             BookingStep.DATETIME -> _state.value = s.copy(currentStep = BookingStep.SERVICES, error = null)
             BookingStep.CONFIRMATION -> _state.value = s.copy(currentStep = BookingStep.DATETIME, error = null)
             else -> Unit
+        }
+    }
+
+    fun goToStep(stepIndex: Int) {
+        val currentIndex = BookingStep.entries.indexOf(_state.value.currentStep)
+        if (stepIndex < currentIndex) {
+            val targetStep = BookingStep.entries[stepIndex]
+            _state.value = _state.value.copy(currentStep = targetStep, error = null)
         }
     }
 

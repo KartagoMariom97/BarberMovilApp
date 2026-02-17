@@ -42,6 +42,7 @@ class AuthRepositoryImpl @Inject constructor(
                 nombres = client.nombres,
                 email = client.email,
                 telefono = telefono,
+                dni = dni,
             )
             Resource.Success(client)
         } catch (e: HttpException) {
@@ -70,6 +71,7 @@ class AuthRepositoryImpl @Inject constructor(
                 nombres = domainProfile.nombres,
                 email = domainProfile.email,
                 telefono = domainProfile.telefono,
+                dni = domainProfile.dni,
             )
 
             Resource.Success(

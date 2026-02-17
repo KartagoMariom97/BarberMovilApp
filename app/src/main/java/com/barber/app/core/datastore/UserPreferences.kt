@@ -6,5 +6,6 @@ data class UserPreferences(
     val nombres: String = "",
     val email: String = "",
     val telefono: String = "",
+    val dni: String = "",
     val isLoggedIn: Boolean = false,
 )

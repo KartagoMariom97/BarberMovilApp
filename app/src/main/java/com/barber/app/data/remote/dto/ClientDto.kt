@@ -25,12 +25,14 @@ data class ClientProfileResponse(
     @SerializedName("nombres") val nombres: String,
     @SerializedName("email") val email: String?,
     @SerializedName("telefono") val telefono: String?,
+    @SerializedName("dni") val dni: String?,
 ) {
     fun toDomain() = ClientProfile(
         id = id,
         nombres = nombres,
         email = email ?: "",
         telefono = telefono ?: "",
+        dni = dni ?: "",
     )
 }
 

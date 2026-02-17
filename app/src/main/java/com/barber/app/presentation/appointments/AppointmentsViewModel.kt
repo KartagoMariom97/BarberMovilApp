@@ -37,7 +37,7 @@ class AppointmentsViewModel @Inject constructor(
 
     fun loadBookings() {
         viewModelScope.launch {
-            _state.value = AppointmentsState(isLoading = true)
+            _state.value = _state.value.copy(isLoading = true)
             val prefs = userPreferencesRepository.userPreferences.first()
 
             if (prefs.clientId <= 0) {

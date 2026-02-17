@@ -21,6 +21,7 @@ class UserPreferencesRepository @Inject constructor(
         val NOMBRES = stringPreferencesKey("nombres")
         val EMAIL = stringPreferencesKey("email")
         val TELEFONO = stringPreferencesKey("telefono")
+        val DNI = stringPreferencesKey("dni")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
     }
 
@@ -31,6 +32,7 @@ class UserPreferencesRepository @Inject constructor(
             nombres = prefs[NOMBRES] ?: "",
             email = prefs[EMAIL] ?: "",
             telefono = prefs[TELEFONO] ?: "",
+            dni = prefs[DNI] ?: "",
             isLoggedIn = prefs[IS_LOGGED_IN] ?: false,
         )
     }
@@ -41,6 +43,7 @@ class UserPreferencesRepository @Inject constructor(
         nombres: String,
         email: String,
         telefono: String,
+        dni: String = "",
     ) {
         dataStore.edit { prefs ->
             prefs[CLIENT_ID] = clientId
@@ -48,6 +51,7 @@ class UserPreferencesRepository @Inject constructor(
             prefs[NOMBRES] = nombres
             prefs[EMAIL] = email
             prefs[TELEFONO] = telefono
+            prefs[DNI] = dni
             prefs[IS_LOGGED_IN] = true
         }
     }
