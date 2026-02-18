@@ -7,6 +7,7 @@ import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.domain.model.ClientProfile
 import com.barber.app.domain.usecase.GetProfileUseCase
 import com.barber.app.domain.usecase.LogoutUseCase
+import com.barber.app.domain.usecase.UpdateProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,11 +21,15 @@ data class ProfileState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isLoggedOut: Boolean = false,
+    val isUpdating: Boolean = false,
+    val updateError: String? = null,
+    val updateSuccess: Boolean = false,
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val getProfileUseCase: GetProfileUseCase,
+    private val updateProfileUseCase: UpdateProfileUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
@@ -68,26 +73,45 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateProfile(nombres: String, email: String, telefono: String, dni: String) {
+    fun updateProfile(nombres: String, genero: String, email: String, telefono: String, dni: String) {
         viewModelScope.launch {
             val prefs = userPreferencesRepository.userPreferences.first()
-            userPreferencesRepository.saveSession(
-                clientId = prefs.clientId,
-                userId = prefs.userId,
-                nombres = nombres,
-                email = email,
-                telefono = telefono,
-                dni = dni,
-            )
-            _state.value = _state.value.copy(
-                profile = _state.value.profile?.copy(
-                    nombres = nombres,
-                    email = email,
-                    telefono = telefono,
-                    dni = dni,
-                )
-            )
+            _state.value = _state.value.copy(isUpdating = true, updateError = null, updateSuccess = false)
+
+            when (val result = updateProfileUseCase(prefs.clientId, nombres, genero, email, telefono, dni)) {
+                is Resource.Success -> {
+                    val updatedProfile = result.data!!
+                    userPreferencesRepository.saveSession(
+                        clientId = prefs.clientId,
+                        userId = prefs.userId,
+                        nombres = updatedProfile.nombres,
+                        email = updatedProfile.email,
+                        telefono = updatedProfile.telefono,
+                        dni = updatedProfile.dni,
+                    )
+                    _state.value = _state.value.copy(
+                        profile = updatedProfile,
+                        isUpdating = false,
+                        updateSuccess = true,
+                    )
+                }
+                is Resource.Error -> {
+                    _state.value = _state.value.copy(
+                        isUpdating = false,
+                        updateError = result.message,
+                    )
+                }
+                is Resource.Loading -> Unit
+            }
         }
+    }
+
+    fun clearUpdateError() {
+        _state.value = _state.value.copy(updateError = null)
+    }
+
+    fun clearUpdateSuccess() {
+        _state.value = _state.value.copy(updateSuccess = false)
     }
 
     fun logout() {

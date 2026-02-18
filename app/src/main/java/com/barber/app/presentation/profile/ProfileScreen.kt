@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
@@ -22,11 +23,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,17 +55,37 @@ fun ProfileScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showEditDialog by remember { mutableStateOf(false) }
     var editNombres by remember { mutableStateOf("") }
+    var editGenero by remember { mutableStateOf("") }
     var editEmail by remember { mutableStateOf("") }
     var editTelefono by remember { mutableStateOf("") }
     var editDni by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.isLoggedOut) {
         if (state.isLoggedOut) onLogout()
     }
 
+    LaunchedEffect(state.updateSuccess) {
+        if (state.updateSuccess) {
+            showEditDialog = false
+            snackbarHostState.showSnackbar("Perfil actualizado correctamente")
+            viewModel.clearUpdateSuccess()
+        }
+    }
+
+    LaunchedEffect(state.updateError) {
+        val error = state.updateError
+        if (error != null) {
+            snackbarHostState.showSnackbar(error)
+            viewModel.clearUpdateError()
+        }
+    }
+
     if (showEditDialog) {
         AlertDialog(
-            onDismissRequest = { showEditDialog = false },
+            onDismissRequest = {
+                if (!state.isUpdating) showEditDialog = false
+            },
             containerColor = Color.White,
             title = { Text("Editar Perfil", color = Color.Black) },
             text = {
@@ -71,6 +95,16 @@ fun ProfileScreen(
                         onValueChange = { editNombres = it },
                         label = { Text("Nombres") },
                         singleLine = true,
+                        enabled = !state.isUpdating,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = editGenero,
+                        onValueChange = { editGenero = it },
+                        label = { Text("Genero") },
+                        singleLine = true,
+                        enabled = !state.isUpdating,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -79,14 +113,16 @@ fun ProfileScreen(
                         onValueChange = { editEmail = it },
                         label = { Text("E-mail") },
                         singleLine = true,
+                        enabled = !state.isUpdating,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = editTelefono,
                         onValueChange = { editTelefono = it },
-                        label = { Text("Teléfono") },
+                        label = { Text("Telefono") },
                         singleLine = true,
+                        enabled = !state.isUpdating,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -95,18 +131,31 @@ fun ProfileScreen(
                         onValueChange = { editDni = it },
                         label = { Text("DNI") },
                         singleLine = true,
+                        enabled = !state.isUpdating,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    if (state.isUpdating) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally).size(24.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.updateProfile(editNombres, editEmail, editTelefono, editDni)
-                    showEditDialog = false
-                }) { Text("Guardar", color = Color.Black) }
+                TextButton(
+                    onClick = {
+                        viewModel.updateProfile(editNombres, editGenero, editEmail, editTelefono, editDni)
+                    },
+                    enabled = !state.isUpdating,
+                ) { Text("Guardar", color = if (state.isUpdating) Color.Gray else Color.Black) }
             },
             dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("Cancelar", color = Color.Black) }
+                TextButton(
+                    onClick = { showEditDialog = false },
+                    enabled = !state.isUpdating,
+                ) { Text("Cancelar", color = if (state.isUpdating) Color.Gray else Color.Black) }
             },
         )
     }
@@ -143,6 +192,13 @@ fun ProfileScreen(
             ) {
                 Column {
                     ListItem(
+                        headlineContent = { Text(state.profile?.genero?.ifBlank { "Sin genero" } ?: "Sin genero") },
+                        supportingContent = { Text("Genero") },
+                        leadingContent = {
+                            Icon(Icons.Default.Face, contentDescription = null)
+                        },
+                    )
+                    ListItem(
                         headlineContent = { Text(state.profile?.email ?: "Sin email") },
                         supportingContent = { Text("E-mail") },
                         leadingContent = {
@@ -150,8 +206,8 @@ fun ProfileScreen(
                         },
                     )
                     ListItem(
-                        headlineContent = { Text(state.profile?.telefono ?: "Sin teléfono") },
-                        supportingContent = { Text("Teléfono") },
+                        headlineContent = { Text(state.profile?.telefono ?: "Sin telefono") },
+                        supportingContent = { Text("Telefono") },
                         leadingContent = {
                             Icon(Icons.Default.Phone, contentDescription = null)
                         },
@@ -171,6 +227,7 @@ fun ProfileScreen(
             OutlinedButton(
                 onClick = {
                     editNombres = state.profile?.nombres ?: ""
+                    editGenero = state.profile?.genero ?: ""
                     editEmail = state.profile?.email ?: ""
                     editTelefono = state.profile?.telefono ?: ""
                     editDni = state.profile?.dni ?: ""
@@ -196,9 +253,14 @@ fun ProfileScreen(
                 ),
             ) {
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-                Text("  Cerrar Sesión")
+                Text("  Cerrar Sesion")
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
 
         if (state.isLoading) {
             LoadingIndicator()

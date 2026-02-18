@@ -11,6 +11,7 @@ data class Client(
 data class ClientProfile(
     val id: Long,
     val nombres: String,
+    val genero: String = "",
     val email: String,
     val telefono: String,
     val dni: String = "",

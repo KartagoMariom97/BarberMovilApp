@@ -4,9 +4,11 @@ import com.barber.app.data.remote.dto.ClientBookingSummaryResponse
 import com.barber.app.data.remote.dto.ClientProfileResponse
 import com.barber.app.data.remote.dto.ClientResponse
 import com.barber.app.data.remote.dto.CreateClientUserRequest
+import com.barber.app.data.remote.dto.UpdateClientProfileRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -26,4 +28,10 @@ interface ClientApi {
 
     @GET("clients/{clientId}/bookings")
     suspend fun getClientBookings(@Path("clientId") clientId: Long): List<ClientBookingSummaryResponse>
+
+    @PUT("clients/{clientId}/profile")
+    suspend fun updateClientProfile(
+        @Path("clientId") clientId: Long,
+        @Body request: UpdateClientProfileRequest,
+    ): ClientProfileResponse
 }

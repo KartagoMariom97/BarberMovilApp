@@ -5,4 +5,5 @@ import com.barber.app.domain.model.ClientProfile
 
 interface ClientRepository {
     suspend fun getClientProfile(clientId: Long): Resource<ClientProfile>
+    suspend fun updateClientProfile(clientId: Long, nombres: String, genero: String, email: String, telefono: String, dni: String): Resource<ClientProfile>
 }
