@@ -80,6 +80,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.ui.window.Dialog
+
 private fun formatDateForDisplay(date: String): String {
     if (date.isBlank()) return ""
     return try {
@@ -182,50 +184,74 @@ fun BookingScreen(
     }
 
     if (showSuccessDialog) {
+
+    Dialog(
+        onDismissRequest = {
+            showSuccessDialog = false
+            onBookingSuccess()
+        }
+    ) {
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.7f))
-                .zIndex(10f),
-        )
-        AlertDialog(
-            onDismissRequest = {
-                showSuccessDialog = false
-                onBookingSuccess()
-            },
-            containerColor = Color.White,
-            icon = {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(40.dp),
-                )
-            },
-            title = {
-                Text(
-                    "Reserva creada",
-                    color = Color.Black,
-                    fontSize = 18.sp,
-                )
-            },
-            text = {
-                Text(
-                    "Tu reserva se ha registrado exitosamente.",
-                    color = Color.Black,
-                    fontSize = 14.sp,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showSuccessDialog = false
-                    onBookingSuccess()
-                }) {
-                    Text("Aceptar", color = Color(0xFF4CAF50))
+                .background(Color.Black.copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center
+        ) {
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f), // ← controlas el ancho aquí
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(40.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "Reserva creada",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "Tu reserva se ha registrado exitosamente.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center, // ← centra el texto internamente
+                        modifier = Modifier.fillMaxWidth() // ← ocupa todo el ancho del Card
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick = {
+                            showSuccessDialog = false
+                            onBookingSuccess()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                    ) {
+                        Text("Aceptar")
+                    }
                 }
-            },
-        )
+            }
+        }
     }
+}
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
