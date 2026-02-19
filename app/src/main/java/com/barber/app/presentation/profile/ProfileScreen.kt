@@ -47,6 +47,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barber.app.presentation.components.LoadingIndicator
 
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.vector.ImageVector
+
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
@@ -82,83 +88,144 @@ fun ProfileScreen(
     }
 
     if (showEditDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                if (!state.isUpdating) showEditDialog = false
-            },
-            containerColor = Color.White,
-            title = { Text("Editar Perfil", color = Color.Black) },
-            text = {
-                Column {
+
+    Dialog(
+        onDismissRequest = {
+            if (!state.isUpdating) showEditDialog = false
+        }
+    ) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f)), // ← 60% opacidad
+            contentAlignment = Alignment.Center
+        ) {
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f) // ← 85% del ancho de pantalla
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+
+                    Text(
+                        text = "Editar Perfil",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.Black
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     OutlinedTextField(
                         value = editNombres,
                         onValueChange = { editNombres = it },
                         label = { Text("Nombres") },
                         singleLine = true,
                         enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
                     )
+
                     Spacer(modifier = Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = editGenero,
                         onValueChange = { editGenero = it },
                         label = { Text("Genero") },
                         singleLine = true,
                         enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
                     )
+
                     Spacer(modifier = Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = editEmail,
                         onValueChange = { editEmail = it },
                         label = { Text("E-mail") },
                         singleLine = true,
                         enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
                     )
+
                     Spacer(modifier = Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = editTelefono,
                         onValueChange = { editTelefono = it },
                         label = { Text("Telefono") },
                         singleLine = true,
                         enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
                     )
+
                     Spacer(modifier = Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = editDni,
                         onValueChange = { editDni = it },
                         label = { Text("DNI") },
                         singleLine = true,
                         enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
                     )
+
                     if (state.isUpdating) {
                         Spacer(modifier = Modifier.height(12.dp))
                         CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.CenterHorizontally).size(24.dp),
-                            strokeWidth = 2.dp,
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .size(24.dp),
+                            strokeWidth = 2.dp
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+
+                        TextButton(
+                            onClick = { showEditDialog = false },
+                            enabled = !state.isUpdating
+                        ) {
+                            Text("Cancelar", color = Color.Black)
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        TextButton(
+                            onClick = {
+                                viewModel.updateProfile(
+                                    editNombres,
+                                    editGenero,
+                                    editEmail,
+                                    editTelefono,
+                                    editDni
+                                )
+                            },
+                            enabled = !state.isUpdating
+                        ) {
+                            Text("Guardar", color = Color.Black)
+                        }
+                    }
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.updateProfile(editNombres, editGenero, editEmail, editTelefono, editDni)
-                    },
-                    enabled = !state.isUpdating,
-                ) { Text("Guardar", color = if (state.isUpdating) Color.Gray else Color.Black) }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showEditDialog = false },
-                    enabled = !state.isUpdating,
-                ) { Text("Cancelar", color = if (state.isUpdating) Color.Gray else Color.Black) }
-            },
-        )
+            }
+        }
     }
+}
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -224,7 +291,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedButton(
+            Button(
                 onClick = {
                     editNombres = state.profile?.nombres ?: ""
                     editGenero = state.profile?.genero ?: ""
@@ -233,27 +300,46 @@ fun ProfileScreen(
                     editDni = state.profile?.dni ?: ""
                     showEditDialog = true
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.5f) // ← ahora ocupa 95% del ancho
+                    .height(44.dp),     // ← antes era 50.dp, ahora más compacto
+                contentPadding = PaddingValues(
+                    vertical = 6.dp,    // ← reduce espacio interno vertical
+                    horizontal = 12.dp  // ← reduce espacio horizontal
+                )
             ) {
                 Icon(
                     Icons.Default.Edit,
                     contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp),
+                    modifier = Modifier.padding(end = 6.dp) // ← menor separación icono-texto
                 )
                 Text("Editar Perfil")
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = viewModel::logout,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(
+                    onClick = viewModel::logout,
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .height(44.dp),
+                    contentPadding = PaddingValues(
+                        vertical = 6.dp,
+                        horizontal = 12.dp
+                    ),
+                    colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
-                ),
+                    ),
             ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-                Text("  Cerrar Sesion")
+                Icon(
+                    Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(modifier = Modifier.width(6.dp)) // ← separación correcta
+
+                Text("Cerrar Sesión")
             }
         }
 
