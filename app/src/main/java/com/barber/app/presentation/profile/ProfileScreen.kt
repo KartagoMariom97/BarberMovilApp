@@ -259,32 +259,96 @@ fun ProfileScreen(
             ) {
                 Column {
                     ListItem(
-                        headlineContent = { Text(state.profile?.genero?.ifBlank { "Sin genero" } ?: "Sin genero") },
-                        supportingContent = { Text("Genero") },
+                        headlineContent = {
+                                Column {
+                                    Text(
+                                        "Genero",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                    Text(
+                                        state.profile?.genero ?: "Sin genero",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            },
                         leadingContent = {
-                            Icon(Icons.Default.Face, contentDescription = null)
-                        },
+                                    Icon(
+                                        Icons.Default.Face,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(45.dp) // ← forzamos altura fija
                     )
                     ListItem(
-                        headlineContent = { Text(state.profile?.email ?: "Sin email") },
-                        supportingContent = { Text("E-mail") },
-                        leadingContent = {
-                            Icon(Icons.Default.Email, contentDescription = null)
+                        headlineContent = { 
+                            Column {
+                                Text(
+                                    "Email",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                                Text(
+                                    state.profile?.email ?: "Sin email",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Email, 
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp))
+                        },
+                                modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(45.dp) // ← forzamos altura fija
                     )
                     ListItem(
-                        headlineContent = { Text(state.profile?.telefono ?: "Sin telefono") },
-                        supportingContent = { Text("Telefono") },
-                        leadingContent = {
-                            Icon(Icons.Default.Phone, contentDescription = null)
+                        headlineContent = { 
+                            Column {
+                                Text(
+                                    "Telefono",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                                Text(
+                                    state.profile?.telefono ?: "Sin telefono",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Phone, 
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp))
+                        },
+                                modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(45.dp) // ← forzamos altura fija
                     )
                     ListItem(
-                        headlineContent = { Text(state.profile?.dni?.ifBlank { "Sin DNI" } ?: "Sin DNI") },
-                        supportingContent = { Text("DNI") },
-                        leadingContent = {
-                            Icon(Icons.Default.Badge, contentDescription = null)
+                        headlineContent = { 
+                            Column {
+                                Text(
+                                    "DNI",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                                Text(
+                                    state.profile?.dni?.ifBlank { "Sin DNI" } ?: "Sin DNI",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         },
+                        leadingContent = {
+                            Icon(Icons.Default.Badge, 
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp))
+                        },
+                            modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(50.dp) // ← forzamos altura fija
                     )
                 }
             }
