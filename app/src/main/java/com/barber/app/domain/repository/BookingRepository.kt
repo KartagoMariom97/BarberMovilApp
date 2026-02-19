@@ -16,4 +16,12 @@ interface BookingRepository {
     suspend fun getBookingById(id: Long): Resource<Booking>
     suspend fun cancelBooking(id: Long): Resource<Booking>
     suspend fun getAllBookings(): Resource<List<Booking>>
+    suspend fun updateBooking(
+    bookingId: Long,
+    clientId: Long,
+    barberId: Long,
+    fecha: String,
+    hora: String,
+    serviceIds: List<Long>
+    ): Resource<Unit>
 }

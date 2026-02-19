@@ -38,6 +38,9 @@ import com.barber.app.presentation.components.DetailOverlay
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
 
+import com.barber.app.domain.model.Barber
+import com.barber.app.domain.model.Service
+
 @Composable
 fun HomeScreen(
     onNavigateToBooking: () -> Unit,
@@ -97,7 +100,13 @@ fun HomeScreen(
                 items(state.upcomingBookings) { booking ->
                     BookingCard(
                         booking = booking,
-                        onShowDetail = { selectedBooking = booking },
+                        barbers = emptyList(),
+                        services = emptyList(),
+                        clientId = 0L,
+                        showActions = false, // 👈 ESTO ES CLAVE
+                        onUpdateBooking = { _, _, _, _, _ -> },
+                        onCancel = null,
+                        onShowDetail = { selectedBooking = booking }
                     )
                 }
             } else {

@@ -31,6 +31,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.barber.app.domain.model.Booking
+import com.barber.app.domain.model.Barber
+import com.barber.app.domain.model.Service
+
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+
+import com.barber.app.presentation.components.EditBookingDialog
 
 private fun formatTimeDisplay(time: String): String {
     if (time.isBlank()) return time
@@ -55,12 +68,24 @@ private val PendingOrange = Color(0xFFFF9800)
 @Composable
 fun BookingCard(
     booking: Booking,
+    barbers: List<Barber>,
+    services: List<Service>,
+    clientId: Long,
+    showActions: Boolean = true, // 👈 NUEVO
+    onUpdateBooking: (
+        clientId: Long,
+        barberId: Long,
+        fecha: String,
+        hora: String,
+        serviceIds: List<Long>
+    ) -> Unit,
     onCancel: (() -> Unit)? = null,
-    onEdit: (() -> Unit)? = null,
     onShowDetail: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var showConfirmDialog by remember { mutableStateOf(false) }
+
+    var showEditDialog by remember { mutableStateOf(false) }
 
     if (showConfirmDialog && onCancel != null) {
         AlertDialog(
@@ -86,6 +111,25 @@ fun BookingCard(
                     Text("No, mantener", color = Color.Black)
                 }
             },
+        )
+    }
+
+    if (showEditDialog) {
+        EditBookingDialog(
+            booking = booking,
+            barbers = barbers,
+            services = services,
+            clientId = clientId,
+            onDismiss = { showEditDialog = false },
+            onSave = { clientId, barberId, fecha, hora, serviceIds ->
+                onUpdateBooking(
+                    clientId,
+                    barberId,
+                    fecha,
+                    hora,
+                    serviceIds
+                )
+            }
         )
     }
 
@@ -163,12 +207,21 @@ fun BookingCard(
                 IconButton(onClick = { onShowDetail?.invoke() }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Info, "Detalles", tint = GrayButton, modifier = Modifier.size(20.dp))
                 }
-                if (isActive && onEdit != null) {
-                    IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Edit, "Editar", tint = YellowButton, modifier = Modifier.size(20.dp))
+                // 👇 SOLO SI showActions ES TRUE
+                if (showActions && isActive) {
+                    IconButton(
+                        onClick = { showEditDialog = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Editar",
+                        tint = YellowButton,
+                        modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
-                if (isActive && onCancel != null) {
+                if (showActions && isActive && onCancel != null) {
                     IconButton(onClick = { showConfirmDialog = true }, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Cancel, "Cancelar", tint = RedButton, modifier = Modifier.size(20.dp))
                     }

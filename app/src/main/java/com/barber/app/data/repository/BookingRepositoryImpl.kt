@@ -121,4 +121,46 @@ class BookingRepositoryImpl @Inject constructor(
             Resource.Error(mapNetworkException(e, "Error al obtener las reservas"))
         }
     }
+
+    override suspend fun updateBooking(
+    bookingId: Long,
+    clientId: Long,
+    barberId: Long,
+    fecha: String,
+    hora: String,
+    serviceIds: List<Long>
+    ): Resource<Unit> {
+    return try {
+        appointmentApi.updateBooking(
+            bookingId = bookingId,
+            request = CreateBookingRequest(
+                clientId = clientId,
+                barberId = barberId,
+                fechaReserva = fecha,
+                startTime = hora,
+                serviceIds = serviceIds
+            )
+        )
+        Resource.Success(Unit)
+    } catch (e: HttpException) {
+        val backendMsg = try {
+            val errorBody = e.response()?.errorBody()?.string()
+            errorBody?.let {
+                val json = com.google.gson.JsonParser.parseString(it).asJsonObject
+                json.get("message")?.asString
+            }
+        } catch (_: Exception) { null }
+
+        val msg = backendMsg ?: when (e.code()) {
+            400 -> "Datos inválidos para actualizar la reserva."
+            404 -> "Reserva no encontrada."
+            409 -> "Ya existe una reserva en ese horario."
+            else -> "Error del servidor (${e.code()})"
+        }
+        Resource.Error(msg)
+    } catch (e: Exception) {
+        Resource.Error(mapNetworkException(e, "Error al actualizar la reserva"))
+    }
+}
+
 }

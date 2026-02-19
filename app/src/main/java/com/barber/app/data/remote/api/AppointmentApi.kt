@@ -29,4 +29,7 @@ interface AppointmentApi {
 
     @PUT("bookings/{id}/complete")
     suspend fun completeBooking(@Path("id") id: Long): BookingResponse
+
+    @PUT("appointments/{id}")
+    suspend fun updateBooking(@Path("id") bookingId: Long,@Body request: CreateBookingRequest)
 }

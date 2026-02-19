@@ -51,8 +51,20 @@ fun AppointmentsScreen(
                     items(state.bookings, key = { it.id }) { booking ->
                         BookingCard(
                             booking = booking,
+                            barbers = state.barbers,
+                            services = state.services,
+                            clientId = state.clientId,
+                            onUpdateBooking = { clientId, barberId, fecha, hora, serviceIds ->
+                                viewModel.updateBooking(
+                                    booking.id,
+                                    clientId,
+                                    barberId,
+                                    fecha,
+                                    hora,
+                                    serviceIds
+                                )
+                            },
                             onCancel = { viewModel.cancelBooking(booking.id) },
-                            onEdit = onNavigateToBooking,
                             onShowDetail = { selectedBooking = booking },
                         )
                     }

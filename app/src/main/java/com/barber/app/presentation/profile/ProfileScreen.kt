@@ -53,6 +53,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
+import androidx.compose.material3.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
+
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
@@ -90,142 +95,96 @@ fun ProfileScreen(
     if (showEditDialog) {
 
     Dialog(
-        onDismissRequest = {
-            if (!state.isUpdating) showEditDialog = false
-        }
+    onDismissRequest = {
+        if (!state.isUpdating) showEditDialog = false
+    },
+    properties = androidx.compose.ui.window.DialogProperties(
+        dismissOnBackPress = true,
+        dismissOnClickOutside = true
+    )
     ) {
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f)), // ← 60% opacidad
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+            showEditDialog = false   // 👈 Cierra el dialog
+        },
             contentAlignment = Alignment.Center
-        ) {
-
-            Card(
+    ) { 
+        Surface(
                 modifier = Modifier
-                    .fillMaxWidth(0.85f) // ← 85% del ancho de pantalla
-                    .wrapContentHeight(),
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { },
                 shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                )
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .padding(20.dp)
-                        .verticalScroll(rememberScrollState())
+                color = Color.White,
+                tonalElevation = 6.dp
                 ) {
 
-                    Text(
-                        text = "Editar Perfil",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.Black
-                    )
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Editar Perfil",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.Black
+                )
 
-                    OutlinedTextField(
-                        value = editNombres,
-                        onValueChange = { editNombres = it },
-                        label = { Text("Nombres") },
-                        singleLine = true,
-                        enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = editNombres,
+                    onValueChange = { editNombres = it },
+                    label = { Text("Nombres") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                    OutlinedTextField(
-                        value = editGenero,
-                        onValueChange = { editGenero = it },
-                        label = { Text("Genero") },
-                        singleLine = true,
-                        enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                Spacer(modifier = Modifier.height(20.dp))
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
 
-                    OutlinedTextField(
-                        value = editEmail,
-                        onValueChange = { editEmail = it },
-                        label = { Text("E-mail") },
-                        singleLine = true,
-                        enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = editTelefono,
-                        onValueChange = { editTelefono = it },
-                        label = { Text("Telefono") },
-                        singleLine = true,
-                        enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = editDni,
-                        onValueChange = { editDni = it },
-                        label = { Text("DNI") },
-                        singleLine = true,
-                        enabled = !state.isUpdating,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    if (state.isUpdating) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .size(24.dp),
-                            strokeWidth = 2.dp
-                        )
+                    TextButton(
+                        onClick = { showEditDialog = false },
+                        enabled = !state.isUpdating
+                    ) {
+                        Text("Cancelar", color = Color.Black)
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-
-                        TextButton(
-                            onClick = { showEditDialog = false },
-                            enabled = !state.isUpdating
-                        ) {
-                            Text("Cancelar", color = Color.Black)
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        TextButton(
-                            onClick = {
-                                viewModel.updateProfile(
-                                    editNombres,
-                                    editGenero,
-                                    editEmail,
-                                    editTelefono,
-                                    editDni
+                    TextButton(
+                        onClick = {
+                            viewModel.updateProfile(
+                                editNombres,
+                                editGenero,
+                                editEmail,
+                                editTelefono,
+                                editDni
                                 )
                             },
-                            enabled = !state.isUpdating
+                        enabled = !state.isUpdating
                         ) {
-                            Text("Guardar", color = Color.Black)
+                        Text("Guardar", color = Color.Black)
                         }
                     }
                 }
             }
+            }
         }
     }
-}
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
