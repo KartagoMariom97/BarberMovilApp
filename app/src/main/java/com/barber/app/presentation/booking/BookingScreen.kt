@@ -81,6 +81,7 @@ import java.util.Date
 import java.util.Locale
 
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 private fun formatDateForDisplay(date: String): String {
     if (date.isBlank()) return ""
@@ -189,7 +190,13 @@ fun BookingScreen(
         onDismissRequest = {
             showSuccessDialog = false
             onBookingSuccess()
-        }
+        },
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
 
         Box(
@@ -201,7 +208,9 @@ fun BookingScreen(
 
             Card(
                 modifier = Modifier
-                    .fillMaxWidth(0.8f), // ← controlas el ancho aquí
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(48.dp), // ← controlas el ancho aquí
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
@@ -406,7 +415,7 @@ private fun DateTimeStep(state: BookingState, viewModel: BookingViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.Black.copy(alpha = 0.7f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -534,7 +543,7 @@ private fun NumberTimePickerDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
+            .background(Color.Black.copy(alpha = 0.7f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

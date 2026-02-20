@@ -130,7 +130,9 @@ fun ProfileScreen(
             onDismissRequest = { showSuccessDialog = false },
             properties = androidx.compose.ui.window.DialogProperties(
                 dismissOnBackPress = true,
-                dismissOnClickOutside = true
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false,   // 🔥 IMPORTANTE
+                decorFitsSystemWindows = false
             )
         ) {
         Box(
@@ -139,13 +141,15 @@ fun ProfileScreen(
                 .background(Color.Black.copy(alpha = 0.7f)),
             contentAlignment = Alignment.Center
         ) {
-            Surface(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .wrapContentHeight()
                     .padding(24.dp),
                 shape = RoundedCornerShape(20.dp),
-                color = Color.White,
-                tonalElevation = 6.dp
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White,
+                    )
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
