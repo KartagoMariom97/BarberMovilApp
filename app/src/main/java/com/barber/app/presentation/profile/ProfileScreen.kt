@@ -58,6 +58,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
 
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+
+import androidx.compose.ui.text.style.TextAlign
+import com.barber.app.presentation.components.EditProfileDialog
+import androidx.compose.ui.zIndex
+
+
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
@@ -72,6 +84,11 @@ fun ProfileScreen(
     var editDni by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
     LaunchedEffect(state.isLoggedOut) {
         if (state.isLoggedOut) onLogout()
     }
@@ -79,7 +96,7 @@ fun ProfileScreen(
     LaunchedEffect(state.updateSuccess) {
         if (state.updateSuccess) {
             showEditDialog = false
-            snackbarHostState.showSnackbar("Perfil actualizado correctamente")
+            showSuccessDialog = true
             viewModel.clearUpdateSuccess()
         }
     }
@@ -93,95 +110,79 @@ fun ProfileScreen(
     }
 
     if (showEditDialog) {
-
-    Dialog(
-    onDismissRequest = {
-        if (!state.isUpdating) showEditDialog = false
-    },
-    properties = androidx.compose.ui.window.DialogProperties(
-        dismissOnBackPress = true,
-        dismissOnClickOutside = true
-    )
-    ) {
+    EditProfileDialog(
+        nombres = state.profile?.nombres ?: "",
+        genero = state.profile?.genero ?: "",
+        email = state.profile?.email ?: "",
+        telefono = state.profile?.telefono ?: "",
+        dni = state.profile?.dni ?: "",
+        isUpdating = state.isUpdating,
+        onDismiss = { showEditDialog = false },
+        onSave = { n, g, e, t, d ->
+            viewModel.updateProfile(n, g, e, t, d)
+            }
+        )
+    }
+    // 👇👇👇 AQUÍ MISMO VA EL DIALOG DE ÉXITO 👇👇👇
+    if (showSuccessDialog) {
+        
+        Dialog(
+            onDismissRequest = { showSuccessDialog = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true
+            )
+        ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-            showEditDialog = false   // 👈 Cierra el dialog
-        },
+                .background(Color.Black.copy(alpha = 0.7f)),
             contentAlignment = Alignment.Center
-    ) { 
-        Surface(
+        ) {
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { },
+                    .padding(24.dp),
                 shape = RoundedCornerShape(20.dp),
                 color = Color.White,
                 tonalElevation = 6.dp
-                ) {
-
-            Column(
-                modifier = Modifier
-                    .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
             ) {
-
-                Text(
-                    text = "Editar Perfil",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = editNombres,
-                    onValueChange = { editNombres = it },
-                    label = { Text("Nombres") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    TextButton(
-                        onClick = { showEditDialog = false },
-                        enabled = !state.isUpdating
-                    ) {
-                        Text("Cancelar", color = Color.Black)
-                    }
+                    Text(
+                        text = "Perfil actualizado",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.Black
+                    )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    TextButton(
-                        onClick = {
-                            viewModel.updateProfile(
-                                editNombres,
-                                editGenero,
-                                editEmail,
-                                editTelefono,
-                                editDni
-                                )
-                            },
-                        enabled = !state.isUpdating
+                    Text(
+                        text = "Tu perfil se actualizó correctamente.",
+                        color = Color.Black
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = { showSuccessDialog = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black
+                            )
                         ) {
-                        Text("Guardar", color = Color.Black)
+                        Text(
+                            "Aceptar",
+                            color = Color.White
+                            )
                         }
                     }
                 }
-            }
             }
         }
     }
@@ -365,11 +366,6 @@ fun ProfileScreen(
                 Text("Cerrar Sesión")
             }
         }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
 
         if (state.isLoading) {
             LoadingIndicator()
