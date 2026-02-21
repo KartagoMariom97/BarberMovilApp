@@ -30,8 +30,5 @@ interface ClientApi {
     suspend fun getClientBookings(@Path("clientId") clientId: Long): List<ClientBookingSummaryResponse>
 
     @PUT("clients/{clientId}/profile")
-    suspend fun updateClientProfile(
-        @Path("clientId") clientId: Long,
-        @Body request: UpdateClientProfileRequest,
-    ): ClientProfileResponse
+    suspend fun updateClientProfile(@Path("clientId") clientId: Long,@Body request: UpdateClientProfileRequest): ClientProfileResponse
 }

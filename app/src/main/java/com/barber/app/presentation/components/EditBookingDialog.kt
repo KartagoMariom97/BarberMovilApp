@@ -21,6 +21,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditBookingDialog(
@@ -39,17 +50,32 @@ fun EditBookingDialog(
 ) {
 
     var selectedBarber by remember { mutableStateOf<Barber?>(null) }
-    var selectedServices by remember { mutableStateOf<List<Service>>(emptyList()) }
+    var selectedService by remember { mutableStateOf<Service?>(null) }
+    var selectedDate by remember { mutableStateOf(booking.fechaReserva) }
 
     var barberExpanded by remember { mutableStateOf(false) }
     var serviceExpanded by remember { mutableStateOf(false) }
 
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = try {
+            LocalDate.parse(booking.fechaReserva)
+                .atStartOfDay(java.time.ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        } catch (e: Exception) {    
+            null
+        }
+    )
+
     Dialog(
-    onDismissRequest = onDismiss,
+    onDismissRequest = { onDismiss() },
     properties = androidx.compose.ui.window.DialogProperties(
         dismissOnBackPress = true,
         dismissOnClickOutside = true,
-        usePlatformDefaultWidth = false
+        usePlatformDefaultWidth = false,
+        decorFitsSystemWindows = false
         )
     ) {
 
@@ -57,29 +83,38 @@ fun EditBookingDialog(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.7f))
+                .navigationBarsPadding()
+                .imePadding()
                 .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    onDismiss()   // 👈 Cierra al tocar afuera
-                },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        onDismiss()
+                    },
             contentAlignment = Alignment.Center
         ) { 
-        Surface(
+            
+        Card(
                 modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(24.dp)
                 .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                    ) { },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { 
+                            // 🔥 Consumimos el click para que NO se propague
+                        },
                 shape = RoundedCornerShape(20.dp),
-                color = Color.White, // 👈 BLANCO FORZADO
-                tonalElevation = 6.dp
-            ) 
-        {
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White,
+                    ) // 👈 BLANCO FORZADO
+            ) {
+
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
                 Text(
@@ -88,7 +123,7 @@ fun EditBookingDialog(
                     color = Color.Black
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // 🔹 BARBER DROPDOWN
                 ExposedDropdownMenuBox(
@@ -123,29 +158,137 @@ fun EditBookingDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Button(
-                    onClick = {
-                        if (selectedBarber == null || selectedServices.isEmpty())
-                            return@Button
+                // 🔹 SERVICE DROPDOWN
+                    ExposedDropdownMenuBox(
+                        expanded = serviceExpanded,
+                        onExpandedChange = { serviceExpanded = !serviceExpanded }
+                    ) {
 
-                        onSave(
-                            clientId,
-                            selectedBarber!!.codigoBarbero,
-                            booking.fechaReserva,
-                            booking.startTime,
-                            selectedServices.map { it.id }
+                        OutlinedTextField(
+                            value = selectedService?.name
+                            ?: booking.services.firstOrNull()?.name.orEmpty(),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Servicio") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = serviceExpanded)
+                            },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
 
-                        onDismiss()
-                    },
-                        modifier = Modifier.fillMaxWidth()
+                        ExposedDropdownMenu(
+                            expanded = serviceExpanded,
+                            onDismissRequest = { serviceExpanded = false }
+                        ) {
+                            services.forEach { service ->
+                                DropdownMenuItem(
+                                    text = { Text(service.name) },
+                                    onClick = {
+                                        selectedService = service
+                                        serviceExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 🔹 DATE PICKER
+
+                Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showDatePicker = true }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedDate,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Fecha de reserva") },
+                            trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = "Seleccionar fecha"
+                                    )
+                                },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                            
+                            enabled = false, // 🔥 importante
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                Spacer(modifier = Modifier.height(12.dp))    
+
+                Button(
+                        onClick = {
+                            if (selectedBarber == null || selectedService == null)
+                                return@Button
+
+                            onSave(
+                                clientId,
+                                selectedBarber!!.codigoBarbero,
+                                selectedDate,              // 🔥 AHORA SÍ ENVÍA LA FECHA MODIFICADA
+                                booking.startTime,
+                                listOf(selectedService!!.id)
+                            )
+
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black,
+                            contentColor = Color.White
+                        )
                     ) {
                         Text("Guardar cambios")
                     }
                 }
             }
+
+            if (showDatePicker) {
+                    DatePickerDialog(
+                        onDismissRequest = { showDatePicker = false },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    datePickerState.selectedDateMillis?.let { millis ->
+                                        val selectedLocalDate =
+                                            java.time.Instant.ofEpochMilli(millis)
+                                                .atZone(java.time.ZoneId.systemDefault())
+                                                .toLocalDate()
+
+                                        selectedDate = selectedLocalDate.toString()
+                                    }
+                                    showDatePicker = false
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Black,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text("Aceptar")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showDatePicker = false }
+                            ) {
+                                Text("Cancelar")
+                            }
+                        }
+                    ) {
+                        DatePicker(state = datePickerState)
+                    }
+                }
+
         }
     }
 }

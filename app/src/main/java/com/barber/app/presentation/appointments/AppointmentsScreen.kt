@@ -25,6 +25,16 @@ import com.barber.app.presentation.components.ErrorMessage
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
 
+import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+
 @Composable
 fun AppointmentsScreen(
     onNavigateToBooking: (() -> Unit)? = null,
@@ -89,6 +99,44 @@ fun AppointmentsScreen(
                 onDismiss = { selectedBooking = null },
             ) {
                 BookingDetailContent(booking)
+            }
+        }
+
+        if (state.updateSuccess) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f)), // 🔥 MÁS OSCURO
+                contentAlignment = Alignment.Center
+            ) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.clearUpdateSuccess() },
+                    containerColor = Color.White,
+                    title = {
+                        Text(
+                            "Reserva actualizada",
+                            color = Color.Black
+                        )
+                    },
+                    text = {
+                        Text(
+                            "La reserva fue actualizada correctamente.",
+                            color = Color.Black
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = { viewModel.clearUpdateSuccess() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Black,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text("Aceptar")
+                        }
+                    }
+                )
             }
         }
     }

@@ -33,6 +33,7 @@ data class AppointmentsState(
     val clientId: Long = 0L,
     val isLoading: Boolean = false,
     val error: String? = null,
+    val updateSuccess: Boolean = false   // 👈 NUEVO
 )
 
 @HiltViewModel
@@ -126,6 +127,8 @@ class AppointmentsViewModel @Inject constructor(
         serviceIds: List<Long>
     ) {
     viewModelScope.launch {
+
+        _state.update { it.copy(isLoading = true) }
         when (
             val result = updateBookingUseCase(
                 bookingId,
@@ -136,9 +139,23 @@ class AppointmentsViewModel @Inject constructor(
                 serviceIds
             )
         ) {
-            is Resource.Success -> loadBookings()
+            is Resource.Success -> {
+                loadBookings()
+                _state.update {
+                    it.copy(
+                        updateSuccess = true,
+                        isLoading = false,
+                        error = null
+                    )
+                }
+            }
             is Resource.Error -> {
-                _state.value = _state.value.copy(error = result.message)
+                _state.update {
+                    it.copy(
+                        error = result.message,
+                        isLoading = false
+                    )
+                }
             }
                 else -> Unit
             }
@@ -160,5 +177,9 @@ class AppointmentsViewModel @Inject constructor(
                 is Resource.Loading -> Unit
             }
         }
+    }
+
+    fun clearUpdateSuccess() {
+        _state.update { it.copy(updateSuccess = false) }
     }
 }
