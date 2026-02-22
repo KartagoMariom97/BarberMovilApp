@@ -1,5 +1,8 @@
 package com.barber.app.presentation.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Edit
@@ -34,16 +39,13 @@ import com.barber.app.domain.model.Booking
 import com.barber.app.domain.model.Barber
 import com.barber.app.domain.model.Service
 
-import androidx.compose.ui.window.Dialog
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-
-import com.barber.app.presentation.components.EditBookingDialog
+import androidx.compose.ui.window.Dialog
 
 private fun formatTimeDisplay(time: String): String {
     if (time.isBlank()) return time
@@ -174,28 +176,47 @@ fun BookingCard(
                     }
                 }
             }
-            Text("Barbero: ${booking.barberName}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp))
-            Text("Hora: ${formatTimeDisplay(booking.startTime)}", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text("Barbero:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                BookingServiceChip(name = booking.barberName)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text("Hora:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                BookingServiceChip(name = formatTimeDisplay(booking.startTime))
+            }
             if (booking.services.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "Servicios:",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
-                booking.services.forEach { svc ->
-                    Text(
-                        "  - ${svc.name} (${svc.minutes} min) - S/ ${svc.price}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    booking.services.forEach { svc ->
+                        BookingServiceChip(name = svc.name)
+                    }
                 }
                 val total = booking.services.sumOf { it.price.toDouble() }
                 Text(
                     "Total: S/ ${"%.2f".format(total)}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 2.dp),
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
 
@@ -231,6 +252,31 @@ fun BookingCard(
     }
 }
 
+/**
+ * Chip de servicio en las tarjetas de reserva.
+ * Para cambiar el COLOR: edita `containerColor` (fondo) y `textColor` (texto) aquí abajo.
+ */
+@Composable
+private fun BookingServiceChip(name: String) {
+    val containerColor = Color.White          // ← FONDO del chip (prueba con Color(0xFF...) para otro color)
+    val textColor      = Color.Black          // ← COLOR DE LETRA del chip
+    val borderColor    = Color.Black.copy(alpha = 0.22f)
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(containerColor)
+            .border(1.dp, borderColor, RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodySmall,
+            color = textColor,
+        )
+    }
+}
+
 @Composable
 fun BookingDetailContent(booking: Booking) {
     val darkText = Color.Black.copy(alpha = 0.8f)
@@ -249,11 +295,19 @@ fun BookingDetailContent(booking: Booking) {
     }", style = MaterialTheme.typography.bodyMedium, color = darkText)
     if (booking.services.isNotEmpty()) {
         Spacer(modifier = Modifier.height(6.dp))
-        Text("Servicios:", style = MaterialTheme.typography.titleSmall, color = Color.Black)
-        booking.services.forEach { svc ->
-            Text("  - ${svc.name} (${svc.minutes} min) - S/ ${svc.price}", style = MaterialTheme.typography.bodySmall, color = darkText)
-        }
+        Text("Servicios:", style = MaterialTheme.typography.labelMedium, color = darkText)
         Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            booking.services.forEach { svc ->
+                BookingServiceChip(name = svc.name)
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
         val total = booking.services.sumOf { it.price.toDouble() }
         Text("Total: S/ ${"%.2f".format(total)}", style = MaterialTheme.typography.titleSmall, color = Color.Black)
     }

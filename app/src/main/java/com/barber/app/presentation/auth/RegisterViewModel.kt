@@ -15,7 +15,7 @@ data class RegisterState(
     val nombres: String = "",
     val fechaNacimiento: String = "",
     val dni: String = "",
-    val genero: String = "M",
+    val genero: String = "Masculino",
     val email: String = "",
     val telefono: String = "",
     val isLoading: Boolean = false,

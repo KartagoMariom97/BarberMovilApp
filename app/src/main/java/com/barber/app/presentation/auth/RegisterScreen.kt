@@ -23,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -89,7 +90,7 @@ fun RegisterScreen(
             ) {
                 OutlinedTextField(
                     value = state.nombres,
-                    onValueChange = viewModel::onNombresChange,
+                    onValueChange = { if (it.length <= 60) viewModel.onNombresChange(it) },
                     label = { Text("Nombres completos") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -110,24 +111,27 @@ fun RegisterScreen(
                 )
                 OutlinedTextField(
                     value = state.dni,
-                    onValueChange = viewModel::onDniChange,
+                    onValueChange = { if (it.length <= 8 && it.all { c -> c.isDigit() }) viewModel.onDniChange(it) },
                     label = { Text("DNI") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = { Text("Máx. 8 dígitos") },
                 )
 
                 Text("Género", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("M" to "Masculino", "F" to "Femenino").forEach { (value, label) ->
+                    listOf("Masculino", "Femenino").forEach { genero ->
                         FilterChip(
-                            selected = state.genero == value,
-                            onClick = { viewModel.onGeneroChange(value) },
-                            label = { Text(label) },
+                            selected = state.genero == genero,
+                            onClick = { viewModel.onGeneroChange(genero) },
+                            label = { Text(genero) },
                         )
                     }
                 }
 
+                val emailInvalid = state.email.isNotEmpty() &&
+                    (!state.email.contains("@") || !state.email.substringAfter("@").contains("."))
                 OutlinedTextField(
                     value = state.email,
                     onValueChange = viewModel::onEmailChange,
@@ -135,14 +139,19 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    isError = emailInvalid,
+                    supportingText = if (emailInvalid) {
+                        { Text("Ingresa un email válido (ej: usuario@correo.com)") }
+                    } else null,
                 )
                 OutlinedTextField(
                     value = state.telefono,
-                    onValueChange = viewModel::onTelefonoChange,
+                    onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) viewModel.onTelefonoChange(it) },
                     label = { Text("Teléfono") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    supportingText = { Text("Máx. 9 dígitos") },
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -165,68 +174,29 @@ fun RegisterScreen(
             )
 
             if (showDatePicker) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.7f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { showDatePicker = false },
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {},
-                            ),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .verticalScroll(rememberScrollState()),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                "Selecciona la fecha",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.Black,
-                                modifier = Modifier.padding(top = 8.dp),
-                            )
-                            DatePicker(
-                                state = datePickerState,
-                                modifier = Modifier.fillMaxWidth(),
-                                showModeToggle = false,
-                                title = null,
-                                headline = null,
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(end = 8.dp, bottom = 8.dp),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
-                                TextButton(onClick = { showDatePicker = false }) {
-                                    Text("Cancelar", color = Color.Black)
-                                }
-                                TextButton(onClick = {
-                                    datePickerState.selectedDateMillis?.let { millis ->
-                                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                        viewModel.onFechaNacimientoChange(sdf.format(Date(millis)))
-                                    }
-                                    showDatePicker = false
-                                }) {
-                                    Text("Aceptar", color = Color.Black)
-                                }
+                DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let { millis ->
+                                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                viewModel.onFechaNacimientoChange(sdf.format(Date(millis)))
                             }
+                            showDatePicker = false
+                        }) { Text("Aceptar", color = Color.Black) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDatePicker = false }) {
+                            Text("Cancelar", color = Color.Black)
                         }
                     }
+                ) {
+                    DatePicker(
+                        state = datePickerState,
+                        showModeToggle = false,
+                        title = null,
+                        headline = null,
+                    )
                 }
             }
         }

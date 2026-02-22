@@ -3,6 +3,7 @@ package com.barber.app.presentation.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Divider
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,26 +56,26 @@ fun HomeScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // ── Encabezado + botón fijos (siempre visibles) ─────────────
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text(
                     text = "Hola, ${state.userName}",
                     style = MaterialTheme.typography.headlineMedium,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Bienvenido a tu barbería favorita",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-
-            item {
+                Spacer(modifier = Modifier.height(4.dp))
                 Button(
                     onClick = onNavigateToBooking,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -88,38 +89,47 @@ fun HomeScreen(
                 }
             }
 
-            if (state.upcomingBookings.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Próximas citas",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                items(state.upcomingBookings) { booking ->
-                    BookingCard(
-                        booking = booking,
-                        barbers = emptyList(),
-                        services = emptyList(),
-                        clientId = 0L,
-                        showActions = false, // 👈 ESTO ES CLAVE
-                        onUpdateBooking = { _, _, _, _, _ -> },
-                        onCancel = null,
-                        onShowDetail = { selectedBooking = booking }
-                    )
-                }
-            } else {
-                item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
+            Divider()
+
+            // ── Lista de próximas citas (scrolleable) ────────────────────
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (state.upcomingBookings.isNotEmpty()) {
+                    item {
                         Text(
-                            text = "No tienes citas próximas",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = "Próximas citas",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
                         )
+                    }
+                    items(state.upcomingBookings) { booking ->
+                        BookingCard(
+                            booking = booking,
+                            barbers = emptyList(),
+                            services = emptyList(),
+                            clientId = 0L,
+                            showActions = false,
+                            onUpdateBooking = { _, _, _, _, _ -> },
+                            onCancel = null,
+                            onShowDetail = { selectedBooking = booking }
+                        )
+                    }
+                } else {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "No tienes citas próximas",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }

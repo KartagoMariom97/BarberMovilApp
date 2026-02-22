@@ -23,9 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
+/**
+ * Indicador de carga a pantalla completa.
+ * Usa Dialog para cubrir TODA la pantalla incluyendo la barra de navegación.
+ * Opacidad total (Color.Black sin alpha) para bloquear visualmente todo el contenido.
+ */
 @Composable
-fun LoadingIndicator(modifier: Modifier = Modifier) {
+fun LoadingIndicator() {
     val infiniteTransition = rememberInfiniteTransition(label = "loading")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -37,24 +44,34 @@ fun LoadingIndicator(modifier: Modifier = Modifier) {
         label = "rotation",
     )
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.7f))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = {},
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Default.ContentCut,
-            contentDescription = "Cargando",
-            tint = Color.Black,
-            modifier = Modifier
-                .size(48.dp)
-                .rotate(rotation),
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
         )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black) // Opacidad total — tapa navbar y todo el contenido
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {}, // Consume los toques para que no pasen a elementos debajo
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.ContentCut,
+                contentDescription = "Cargando",
+                tint = Color.White, // Blanco sobre fondo negro
+                modifier = Modifier
+                    .size(48.dp)
+                    .rotate(rotation),
+            )
+        }
     }
 }

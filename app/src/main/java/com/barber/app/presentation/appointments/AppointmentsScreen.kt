@@ -107,7 +107,7 @@ fun AppointmentsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f)), // 🔥 MÁS OSCURO
+                    .background(Color.Black.copy(alpha = 0.7f)),
                 contentAlignment = Alignment.Center
             ) {
                 AlertDialog(

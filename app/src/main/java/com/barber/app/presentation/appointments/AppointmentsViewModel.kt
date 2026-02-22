@@ -68,9 +68,9 @@ class AppointmentsViewModel @Inject constructor(
             is Resource.Success -> {
                 _state.update {
                     it.copy(
-                        bookings = result.data.sortedByDescending { booking ->
-                            booking.fechaReserva
-                        },
+                        bookings = result.data
+                            .filter { booking -> booking.status != "CANCELLED" }
+                            .sortedByDescending { booking -> booking.fechaReserva },
                         clientId = userId,
                         isLoading = false,
                         error = null

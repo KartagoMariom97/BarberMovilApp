@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -85,8 +86,13 @@ fun EditProfileDialog(
                         .clickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
-                        ) { 
-                            // 🔥 Consumimos el click para que NO se propague
+                        ) {
+                            // ① Consumimos el click para que NO se propague al Box exterior
+                            //    (el Box exterior tiene onDismiss, y no queremos cerrar el dialog)
+                            // ② Al mismo tiempo cerramos el teclado:
+                            //    focusManager.clearFocus() retira el foco de cualquier TextField
+                            //    activo, lo que hace que el IME (teclado) se oculte automáticamente.
+                            focusManager.clearFocus()
                         },
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
@@ -97,13 +103,30 @@ fun EditProfileDialog(
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
-                        .padding(24.dp),
+                        .padding(24.dp)
+                        // ③ pointerInput + detectTapGestures detecta taps en el espacio vacío
+                        //    del Column (entre campos, arriba del primer campo, etc.).
+                        //    A diferencia del clickable del Card, este sí dispara aunque
+                        //    el Column tenga verticalScroll, porque opera a nivel de puntero.
+                        //    Cuando el tap cae sobre un hijo interactivo (TextField, Button),
+                        //    ese hijo lo consume y este handler NO se activa — solo dispara
+                        //    en áreas vacías, que es exactamente lo que buscamos.
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                // Retira el foco de cualquier TextField activo.
+                                // Compose esconde automáticamente el IME cuando ningún
+                                // componente tiene foco de entrada.
+                                focusManager.clearFocus()
+                            }
+                        },
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
 
                     Text(
                         text = "Editar Perfil",
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     OutlinedTextField(
@@ -132,28 +155,39 @@ fun EditProfileDialog(
                         ) { Text("Femenino") }
                     }
 
+                    val emailInvalid = editEmail.isNotEmpty() &&
+                        (!editEmail.contains("@") || !editEmail.substringAfter("@").contains("."))
                     OutlinedTextField(
                         value = editEmail,
                         onValueChange = { editEmail = it },
                         label = { Text("Email") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        isError = emailInvalid,
+                        supportingText = if (emailInvalid) {
+                            { Text("Ingresa un email válido (ej: usuario@correo.com)") }
+                        } else null,
                     )
 
                     OutlinedTextField(
                         value = editTelefono,
-                        onValueChange = { editTelefono = it },
+                        onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) editTelefono = it },
                         label = { Text("Teléfono") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        supportingText = { Text("Máx. 9 dígitos") },
                     )
 
                     OutlinedTextField(
                         value = editDni,
-                        onValueChange = { editDni = it },
+                        onValueChange = { if (it.length <= 8 && it.all { c -> c.isDigit() }) editDni = it },
                         label = { Text("DNI") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        supportingText = { Text("Máx. 8 dígitos") },
                     )
 
                     Row(

@@ -36,6 +36,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +47,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,8 +78,6 @@ import com.barber.app.presentation.components.ServiceDetailContent
 import com.barber.app.domain.model.Service
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 import androidx.compose.ui.window.Dialog
@@ -355,7 +355,7 @@ private fun ServiceSelectionStep(state: BookingState, viewModel: BookingViewMode
 
     LaunchedEffect(state.selectedServices.size) {
         if (state.selectedServices.isNotEmpty()) {
-            delay(2000)
+            delay(1000)
             coroutineScope.launch {
                 listState.animateScrollToItem(state.services.size)
             }
@@ -397,88 +397,47 @@ private fun DateTimeStep(state: BookingState, viewModel: BookingViewModel) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    val datePickerState = rememberDatePickerState()
-
-    // Auto-confirm when date is tapped
-    LaunchedEffect(datePickerState.selectedDateMillis) {
-        if (showDatePicker && datePickerState.selectedDateMillis != null) {
-            delay(300)
-            datePickerState.selectedDateMillis?.let { millis ->
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                viewModel.onDateChange(sdf.format(Date(millis)))
-            }
-            showDatePicker = false
-        }
+    val todayMillis = remember {
+        java.time.LocalDate.now()
+            .atStartOfDay(java.time.ZoneOffset.UTC) // UTC para que coincida con los millis del DatePicker
+            .toInstant()
+            .toEpochMilli()
     }
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                return utcTimeMillis >= todayMillis
+            }
+        }
+    )
 
     if (showDatePicker) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.7f))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { showDatePicker = false },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                    ),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-            ) {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        "Selecciona la fecha",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                    DatePicker(
-                        state = datePickerState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer {
-                                scaleX = 0.92f
-                                scaleY = 0.92f
-                            },
-                        showModeToggle = false,
-                        title = null,
-                        headline = null,
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 8.dp, bottom = 4.dp),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        TextButton(onClick = { showDatePicker = false }) {
-                            Text("Cancelar", color = Color.Black)
-                        }
-                        TextButton(onClick = {
-                            datePickerState.selectedDateMillis?.let { millis ->
-                                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                viewModel.onDateChange(sdf.format(Date(millis)))
-                            }
-                            showDatePicker = false
-                        }) {
-                            Text("Aceptar", color = Color.Black)
-                        }
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        // Convertimos con ZoneOffset.UTC porque el DatePicker guarda millis en UTC
+                        val selectedLocalDate = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneOffset.UTC)
+                            .toLocalDate()
+                        viewModel.onDateChange(selectedLocalDate.toString())
                     }
+                    showDatePicker = false
+                }) { Text("Aceptar", color = Color.Black) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancelar", color = Color.Black)
                 }
             }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false,
+                title = null,
+                headline = null,
+            )
         }
     }
 
@@ -845,7 +804,7 @@ private fun StepIndicator(
                 } else {
                     Text(
                         text = "${i + 1}",
-                        color = if (isCurrent) Color.White else Color.DarkGray,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
