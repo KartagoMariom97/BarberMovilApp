@@ -127,11 +127,12 @@ fun BookingCard(
     }
 
     val statusColor = when (booking.status.uppercase()) {
-        "PENDING"   -> PendingOrange
-        "CONFIRMED" -> MaterialTheme.colorScheme.secondary
-        "CANCELLED" -> MaterialTheme.colorScheme.error
-        "COMPLETED" -> MaterialTheme.colorScheme.primary
-        else        -> MaterialTheme.colorScheme.onSurface
+        "PENDING"     -> PendingOrange
+        "CONFIRMED"   -> MaterialTheme.colorScheme.secondary
+        "IN_PROGRESS" -> Color(0xFF7B1FA2)
+        "CANCELLED"   -> MaterialTheme.colorScheme.error
+        "COMPLETED"   -> MaterialTheme.colorScheme.primary
+        else          -> MaterialTheme.colorScheme.onSurface
     }
 
     val isActive = booking.status.uppercase() in listOf("PENDING", "CONFIRMED")
@@ -160,10 +161,11 @@ fun BookingCard(
                     }
                     else -> {
                         val statusText = when (booking.status.uppercase()) {
-                            "CONFIRMED" -> "Confirmada"
-                            "CANCELLED" -> "Cancelada"
-                            "COMPLETED" -> "Completada"
-                            else        -> booking.status
+                            "CONFIRMED"   -> "Confirmada"
+                            "IN_PROGRESS" -> "En Progreso"
+                            "CANCELLED"   -> "Cancelada"
+                            "COMPLETED"   -> "Completada"
+                            else          -> booking.status
                         }
                         Text(statusText, style = MaterialTheme.typography.bodySmall, color = statusColor)
                     }
@@ -278,11 +280,12 @@ private fun BookingServiceChip(name: String) {
 private fun BookingStatusChip(status: String) {
     // [CAMBIO] cada estado tiene su color semántico propio, letras blancas para contraste
     val (bgColor, label) = when (status.uppercase()) {
-        "PENDING"   -> Color(0xFFFFC107) to "Pendiente"   // amarillo absoluto
-        "CONFIRMED" -> Color(0xFF4CAF50) to "Confirmada"  // verde
-        "CANCELLED" -> Color(0xFFE53935) to "Cancelada"   // rojo
-        "COMPLETED" -> Color(0xFF1565C0) to "Completada"  // azul
-        else        -> Color(0xFF9E9E9E) to status
+        "PENDING"     -> Color(0xFFFFC107) to "Pendiente"    // amarillo
+        "CONFIRMED"   -> Color(0xFF4CAF50) to "Confirmada"   // verde
+        "IN_PROGRESS" -> Color(0xFF7B1FA2) to "En Progreso"  // morado
+        "CANCELLED"   -> Color(0xFFE53935) to "Cancelada"    // rojo
+        "COMPLETED"   -> Color(0xFF1565C0) to "Completada"   // azul
+        else          -> Color(0xFF9E9E9E) to status
     }
 
     Box(

@@ -1,7 +1,5 @@
 package com.barber.app.presentation.auth
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,10 +34,10 @@ import com.barber.app.presentation.components.ErrorOverlay
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: () -> Unit,
+    onNavigateToAdmin: () -> Unit = {},
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) onLoginSuccess()
@@ -101,10 +98,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://barberapp-crff.onrender.com"))
-                    context.startActivity(intent)
-                },
+                onClick = onNavigateToAdmin,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
             ) {
                 Icon(
@@ -112,7 +106,7 @@ fun LoginScreen(
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp),
                 )
-                Text("Acceso Barberos / Admin")
+                Text("Acceso Admin")
             }
         }
 

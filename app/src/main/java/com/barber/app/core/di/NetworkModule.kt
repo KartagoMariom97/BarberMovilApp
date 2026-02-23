@@ -3,6 +3,10 @@ package com.barber.app.core.di
 import com.barber.app.core.common.Constants
 import com.barber.app.core.network.AuthAuthenticator
 import com.barber.app.core.network.AuthInterceptor
+import com.barber.app.data.remote.api.AdminBarberApi
+import com.barber.app.data.remote.api.AdminBookingApi
+import com.barber.app.data.remote.api.AdminClientApi
+import com.barber.app.data.remote.api.AdminServiceApi
 import com.barber.app.data.remote.api.AppointmentApi
 import com.barber.app.data.remote.api.BarberApi
 import com.barber.app.data.remote.api.ClientApi
@@ -87,4 +91,24 @@ object NetworkModule {
     @Singleton
     fun provideServiceApi(retrofit: Retrofit): ServiceApi =
         retrofit.create(ServiceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAdminBarberApi(retrofit: Retrofit): AdminBarberApi =
+        retrofit.create(AdminBarberApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAdminServiceApi(retrofit: Retrofit): AdminServiceApi =
+        retrofit.create(AdminServiceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAdminClientApi(retrofit: Retrofit): AdminClientApi =
+        retrofit.create(AdminClientApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAdminBookingApi(retrofit: Retrofit): AdminBookingApi =
+        retrofit.create(AdminBookingApi::class.java)
 }

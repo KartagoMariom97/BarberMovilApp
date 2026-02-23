@@ -1,0 +1,75 @@
+package com.barber.app.data.repository
+
+import com.barber.app.core.common.Resource
+import com.barber.app.data.remote.api.AdminServiceApi
+import com.barber.app.data.remote.dto.AdminCreateServiceRequest
+import com.barber.app.data.remote.dto.AdminUpdateServiceRequest
+import com.barber.app.domain.model.Service
+import com.barber.app.domain.repository.AdminServiceRepository
+import retrofit2.HttpException
+import java.math.BigDecimal
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.inject.Inject
+
+private fun mapError(e: Exception, fallback: String): String = when (e) {
+    is SocketTimeoutException -> "Tiempo de espera agotado."
+    is UnknownHostException   -> "Sin conexión a internet."
+    is HttpException          -> {
+        val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+        val msg  = try { com.google.gson.JsonParser.parseString(body).asJsonObject.get("message")?.asString } catch (_: Exception) { null }
+        msg ?: "Error del servidor (${e.code()})"
+    }
+    else -> e.message ?: fallback
+}
+
+class AdminServiceRepositoryImpl @Inject constructor(
+    private val api: AdminServiceApi,
+) : AdminServiceRepository {
+
+    override suspend fun getAllServices(): Resource<List<Service>> {
+        return try {
+            Resource.Success(api.getAllServices().map { it.toDomain() })
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al obtener los servicios"))
+        }
+    }
+
+    override suspend fun createService(
+        name: String,
+        description: String?,
+        estimatedMinutes: Int,
+        price: BigDecimal,
+    ): Resource<Service> {
+        return try {
+            val response = api.createService(AdminCreateServiceRequest(name, description, estimatedMinutes, price))
+            Resource.Success(response.toDomain())
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al crear el servicio"))
+        }
+    }
+
+    override suspend fun updateService(
+        id: Long,
+        name: String?,
+        description: String?,
+        estimatedMinutes: Int?,
+        price: BigDecimal?,
+    ): Resource<Service> {
+        return try {
+            val response = api.updateService(id, AdminUpdateServiceRequest(name, description, estimatedMinutes, price))
+            Resource.Success(response.toDomain())
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al actualizar el servicio"))
+        }
+    }
+
+    override suspend fun deleteService(id: Long): Resource<Unit> {
+        return try {
+            api.deleteService(id)
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al eliminar el servicio"))
+        }
+    }
+}

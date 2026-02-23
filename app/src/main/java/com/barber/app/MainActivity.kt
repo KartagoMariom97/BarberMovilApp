@@ -88,11 +88,16 @@ private fun MainContent(startDestination: Screen) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val authRoutes = listOf(
+    val noBottomBarRoutes = listOf(
         Screen.Login::class.qualifiedName,
         Screen.Register::class.qualifiedName,
+        Screen.AdminDashboard::class.qualifiedName,
+        Screen.AdminBarbers::class.qualifiedName,
+        Screen.AdminServices::class.qualifiedName,
+        Screen.AdminClients::class.qualifiedName,
+        Screen.AdminBookings::class.qualifiedName,
     )
-    val showBottomBar = currentRoute != null && currentRoute !in authRoutes
+    val showBottomBar = currentRoute != null && currentRoute !in noBottomBarRoutes
 
     val isOnBooking = currentRoute == Screen.Booking::class.qualifiedName
 

@@ -5,6 +5,11 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.barber.app.presentation.admin.AdminBookingsScreen
+import com.barber.app.presentation.admin.AdminBarbersScreen
+import com.barber.app.presentation.admin.AdminClientsScreen
+import com.barber.app.presentation.admin.AdminDashboardScreen
+import com.barber.app.presentation.admin.AdminServicesScreen
 import com.barber.app.presentation.appointments.AppointmentsScreen
 import com.barber.app.presentation.auth.LoginScreen
 import com.barber.app.presentation.auth.RegisterScreen
@@ -32,6 +37,9 @@ fun NavGraph(
                     navController.navigate(Screen.Home) {
                         popUpTo(Screen.Login) { inclusive = true }
                     }
+                },
+                onNavigateToAdmin = {
+                    navController.navigate(Screen.AdminDashboard)
                 },
             )
         }
@@ -85,6 +93,33 @@ fun NavGraph(
                     }
                 },
             )
+        }
+
+        // ─── Admin ────────────────────────────────────────────────────────────────
+        composable<Screen.AdminDashboard> {
+            AdminDashboardScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToBarbers  = { navController.navigate(Screen.AdminBarbers) },
+                onNavigateToServices = { navController.navigate(Screen.AdminServices) },
+                onNavigateToClients  = { navController.navigate(Screen.AdminClients) },
+                onNavigateToBookings = { navController.navigate(Screen.AdminBookings) },
+            )
+        }
+
+        composable<Screen.AdminBarbers> {
+            AdminBarbersScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable<Screen.AdminServices> {
+            AdminServicesScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable<Screen.AdminClients> {
+            AdminClientsScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable<Screen.AdminBookings> {
+            AdminBookingsScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }
