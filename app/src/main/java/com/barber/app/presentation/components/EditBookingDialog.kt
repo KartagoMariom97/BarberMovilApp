@@ -18,7 +18,23 @@ import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -144,45 +160,83 @@ fun EditBookingDialog(
 
                     HorizontalDivider(color = Color.Black.copy(alpha = 0.08f))
 
-                    // ── Barbero ─────────────────────────────────────────
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        ExposedDropdownMenuBox(
-                            expanded = barberExpanded,
-                            onExpandedChange = { barberExpanded = !barberExpanded }
-                        ) {
+                    // ── Barbero (selector in-place igual que servicios) ──────
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = selectedBarber?.nombres ?: booking.barberName,
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("Barbero") },
                                 trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = barberExpanded)
-                                },
-                                isError = barberError,
-                                modifier = Modifier.menuAnchor().fillMaxWidth()
-                            )
-                            ExposedDropdownMenu(
-                                expanded = barberExpanded,
-                                onDismissRequest = { barberExpanded = false },
-                                modifier = Modifier.heightIn(max = 172.dp) // ~3 items visibles
-                            ) {
-                                barbers.filter { it.active }.forEach { barber ->
-                                    DropdownMenuItem(
-                                        text = { Text(barber.nombres) },
-                                        onClick = {
-                                            selectedBarber = barber
-                                            barberExpanded = false
-                                        }
+                                    Icon(
+                                        imageVector = if (barberExpanded) Icons.Default.ArrowDropUp
+                                                      else Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
                                     )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledBorderColor = if (barberError) Color.Red
+                                                          else MaterialTheme.colorScheme.outline,
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledLabelColor = if (barberError) Color.Red
+                                                         else MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            // Área transparente para abrir/cerrar la lista
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                    ) { barberExpanded = !barberExpanded },
+                            )
+                        }
+
+                        // Lista de barberos in-place (sin popup, sin checkbox)
+                        if (barberExpanded) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(2.dp),
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 220.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                ) {
+                                    barbers.filter { it.active }.forEach { barber ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    selectedBarber = barber
+                                                    barberExpanded = false
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Text(
+                                                barber.nombres,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
+
                         if (barberError) {
                             Text(
                                 "Selecciona un barbero",
                                 color = Color.Red,
                                 style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 16.dp)
+                                modifier = Modifier.padding(start = 16.dp),
                             )
                         }
                     }
@@ -282,10 +336,12 @@ fun EditBookingDialog(
                         // Chips de servicios seleccionados
                         if (selectedServiceIds.isNotEmpty()) {
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, Color.Black.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                                elevation = CardDefaults.cardElevation(0.dp)
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(2.dp),
                             ) {
                                 Row(
                                     modifier = Modifier

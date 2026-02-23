@@ -38,7 +38,7 @@ fun ServiceCard(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.secondaryContainer
             } else {
-                MaterialTheme.colorScheme.surface
+                Color.White
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),

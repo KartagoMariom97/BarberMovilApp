@@ -3,6 +3,7 @@ package com.barber.app.presentation.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.barber.app.presentation.components.LoadingIndicator
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -95,20 +97,34 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
-                    value = state.fechaNacimiento,
-                    onValueChange = {},
-                    label = { Text("Fecha de nacimiento") },
-                    placeholder = { Text("Toca para elegir fecha") },
-                    singleLine = true,
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
+                // Fecha de nacimiento — toda el área es clickable (no solo el icono)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                        ) { showDatePicker = true },
+                ) {
+                    OutlinedTextField(
+                        value = state.fechaNacimiento,
+                        onValueChange = {},
+                        label = { Text("Fecha de nacimiento") },
+                        placeholder = { Text("Toca para elegir fecha") },
+                        singleLine = true,
+                        enabled = false,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
                             Icon(Icons.Default.CalendarMonth, contentDescription = "Elegir fecha")
-                        }
-                    },
-                )
+                        },
+                    )
+                }
                 OutlinedTextField(
                     value = state.dni,
                     onValueChange = { if (it.length <= 8 && it.all { c -> c.isDigit() }) viewModel.onDniChange(it) },
@@ -172,6 +188,10 @@ fun RegisterScreen(
                 visible = state.error != null,
                 onDismiss = viewModel::clearError,
             )
+
+            if (state.isLoading) {
+                LoadingIndicator()
+            }
 
             if (showDatePicker) {
                 DatePickerDialog(

@@ -40,7 +40,10 @@ fun BarberTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = Color.White.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            window.navigationBarColor = Color.White.toArgb()
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = true
+            controller.isAppearanceLightNavigationBars = true
         }
     }
 

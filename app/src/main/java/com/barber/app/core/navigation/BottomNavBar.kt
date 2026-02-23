@@ -8,8 +8,10 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 
 data class BottomNavItem(
@@ -31,7 +33,7 @@ fun BottomNavBar(
     onItemClick: (Screen) -> Unit,
     onBeforeNavigate: ((Screen) -> Boolean)? = null,
 ) {
-    NavigationBar {
+    NavigationBar(containerColor = Color.White) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.screen::class.qualifiedName
             NavigationBarItem(
@@ -43,6 +45,9 @@ fun BottomNavBar(
                 },
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color.Black.copy(alpha = 0.08f),
+                ),
             )
         }
     }

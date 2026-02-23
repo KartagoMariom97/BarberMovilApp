@@ -56,18 +56,18 @@ fun LoadingIndicator() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f)) // Opacidad total — tapa navbar y todo el contenido
+                .background(Color.White) // ← CAMBIAR COLOR: fondo del loading
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = {}, // Consume los toques para que no pasen a elementos debajo
+                    onClick = {},
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.ContentCut,
                 contentDescription = "Cargando",
-                tint = Color.White, // Blanco sobre fondo negro
+                tint = Color.Black, // ← CAMBIAR COLOR: icono del loading
                 modifier = Modifier
                     .size(48.dp)
                     .rotate(rotation),
