@@ -13,6 +13,7 @@ import javax.inject.Inject
 
 data class LoginState(
     val email: String = "",
+    val password: String = "",      // Campo contraseña para login JWT
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSuccess: Boolean = false,
@@ -30,6 +31,10 @@ class LoginViewModel @Inject constructor(
         _state.value = _state.value.copy(email = email, error = null)
     }
 
+    fun onPasswordChange(password: String) {
+        _state.value = _state.value.copy(password = password, error = null)
+    }
+
     fun clearError() {
         _state.value = _state.value.copy(error = null)
     }
@@ -37,7 +42,7 @@ class LoginViewModel @Inject constructor(
     fun login() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
-            when (val result = loginUseCase(_state.value.email)) {
+            when (val result = loginUseCase(_state.value.email, _state.value.password)) {
                 is Resource.Success -> {
                     _state.value = _state.value.copy(isLoading = false, isSuccess = true)
                 }

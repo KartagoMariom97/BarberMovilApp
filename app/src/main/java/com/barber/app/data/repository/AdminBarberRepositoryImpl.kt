@@ -2,6 +2,7 @@ package com.barber.app.data.repository
 
 import com.barber.app.core.common.Resource
 import com.barber.app.data.remote.api.AdminBarberApi
+import com.barber.app.data.remote.dto.AdminCreateBarberRequest
 import com.barber.app.data.remote.dto.AdminUpdateBarberRequest
 import com.barber.app.domain.model.AdminBarber
 import com.barber.app.domain.repository.AdminBarberRepository
@@ -13,6 +14,36 @@ import javax.inject.Inject
 class AdminBarberRepositoryImpl @Inject constructor(
     private val api: AdminBarberApi,
 ) : AdminBarberRepository {
+
+    /** Crea barbero llamando POST /barbers/user con todos los campos requeridos */
+    override suspend fun createBarber(
+        nombres: String,
+        fechaNacimiento: String,
+        dni: String,
+        genero: String,
+        email: String,
+        password: String,
+        telefono: String?,
+        active: Boolean,
+    ): Resource<AdminBarber> {
+        return try {
+            val response = api.createBarber(
+                AdminCreateBarberRequest(
+                    nombres = nombres,
+                    fechaNacimiento = fechaNacimiento,
+                    dni = dni,
+                    genero = genero,
+                    email = email,
+                    password = password,
+                    telefono = telefono,
+                    active = active,
+                ),
+            )
+            Resource.Success(response.toDomain())
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al crear el barbero"))
+        }
+    }
 
     override suspend fun getAllBarbers(): Resource<List<AdminBarber>> {
         return try {

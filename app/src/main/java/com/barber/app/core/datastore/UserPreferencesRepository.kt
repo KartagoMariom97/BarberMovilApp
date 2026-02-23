@@ -79,6 +79,10 @@ class UserPreferencesRepository @Inject constructor(
             prefs[NOMBRES] = nombres
             prefs[EMAIL] = email
             prefs[IS_LOGGED_IN] = true
+            // Para rol CLIENT, guarda también CLIENT_ID para que HomeViewModel pueda cargar reservas
+            if (role.equals("CLIENT", ignoreCase = true)) {
+                prefs[CLIENT_ID] = entityId
+            }
         }
     }
 

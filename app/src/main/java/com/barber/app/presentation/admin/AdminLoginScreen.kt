@@ -1,5 +1,6 @@
 package com.barber.app.presentation.admin
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,9 @@ fun AdminLoginScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Impide regresar a Login desde AdminLogin usando el botón retroceder
+    BackHandler(enabled = true) { /* No retroceder desde admin login */ }
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) onLoginSuccess(state.nombres)

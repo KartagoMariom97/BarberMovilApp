@@ -16,11 +16,11 @@ class AuthAuthenticator @Inject constructor(
     override fun authenticate(route: Route?, response: Response): Request? {
         // If we already tried and failed, don't retry
         if (response.request.header("Authorization") != null) {
-            // Token refresh would go here when backend implements JWT
-            // For now, clear session on auth failure
             runBlocking {
                 tokenHolder.clear()
                 userPreferencesRepository.clearSession()
+                // Notifica a la UI que la sesión expiró para redirigir al login
+                tokenHolder.sessionExpiredFlow.emit(Unit)
             }
             return null
         }

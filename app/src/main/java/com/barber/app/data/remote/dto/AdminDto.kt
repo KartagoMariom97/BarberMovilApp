@@ -43,6 +43,19 @@ data class AdminUpdateBarberRequest(
     @SerializedName("active")   val active: Boolean? = null,
 )
 
+// ─── Admin Client Create ──────────────────────────────────────────────────────
+
+/** Request para POST /api/v1/admin/clients — crea cliente con cuenta de usuario */
+data class AdminCreateClientRequest(
+    @SerializedName("nombres")          val nombres: String,
+    @SerializedName("fechaNacimiento")  val fechaNacimiento: String,   // yyyy-MM-dd
+    @SerializedName("dni")              val dni: String,
+    @SerializedName("genero")           val genero: String,
+    @SerializedName("email")            val email: String? = null,
+    @SerializedName("telefono")         val telefono: String,
+    @SerializedName("password")         val password: String? = null,
+)
+
 // ─── Admin Client ─────────────────────────────────────────────────────────────
 
 data class AdminClientResponse(
@@ -90,6 +103,20 @@ data class AdminUpdateServiceRequest(
     @SerializedName("description")      val description: String? = null,
     @SerializedName("estimatedMinutes") val estimatedMinutes: Int? = null,
     @SerializedName("price")            val price: BigDecimal? = null,
+)
+
+// ─── Admin Barber Create ──────────────────────────────────────────────────────
+
+/** Request para POST /api/v1/barbers/user — crea barbero con cuenta de usuario */
+data class AdminCreateBarberRequest(
+    @SerializedName("nombres")          val nombres: String,
+    @SerializedName("fechaNacimiento")  val fechaNacimiento: String,    // yyyy-MM-dd
+    @SerializedName("dni")              val dni: String,
+    @SerializedName("genero")           val genero: String,
+    @SerializedName("email")            val email: String,
+    @SerializedName("password")         val password: String,
+    @SerializedName("telefono")         val telefono: String? = null,
+    @SerializedName("active")           val active: Boolean = true,
 )
 
 // ─── Admin Booking ────────────────────────────────────────────────────────────

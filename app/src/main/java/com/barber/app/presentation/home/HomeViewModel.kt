@@ -20,6 +20,9 @@ data class HomeState(
     val upcomingBookings: List<Booking> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** Cantidad de reservas confirmadas detectadas al cargar — activa el dialog de notificación */
+    val confirmedCount: Int = 0,
+    val showConfirmedDialog: Boolean = false,
 )
 
 @HiltViewModel
@@ -31,12 +34,20 @@ class HomeViewModel @Inject constructor(
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
+    // Flag para mostrar el dialog de confirmación solo una vez por sesión
+    private var confirmedDialogShown = false
+
     init {
         loadData()
     }
 
     fun clearError() {
         _state.value = _state.value.copy(error = null)
+    }
+
+    /** Cierra el dialog de reserva confirmada */
+    fun dismissConfirmedDialog() {
+        _state.value = _state.value.copy(showConfirmedDialog = false)
     }
 
     fun loadData() {
@@ -51,9 +62,15 @@ class HomeViewModel @Inject constructor(
                         val upcoming = result.data.filter {
                             it.status.uppercase() in listOf("PENDING", "CONFIRMED")
                         }
+                        val confirmed = result.data.filter { it.status.uppercase() == "CONFIRMED" }
+                        // Muestra el dialog de confirmación solo la primera vez que se detectan reservas confirmadas
+                        val showDialog = confirmed.isNotEmpty() && !confirmedDialogShown
+                        if (showDialog) confirmedDialogShown = true
                         _state.value = _state.value.copy(
                             upcomingBookings = upcoming,
                             isLoading = false,
+                            confirmedCount = confirmed.size,
+                            showConfirmedDialog = showDialog,
                         )
                     }
                     is Resource.Error -> {

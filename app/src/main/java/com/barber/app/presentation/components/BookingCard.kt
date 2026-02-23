@@ -15,8 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -150,26 +153,21 @@ fun BookingCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(booking.fechaReserva, style = MaterialTheme.typography.titleLarge)
-                when (booking.status.uppercase()) {
-                    "PENDING" -> {
-                        Icon(
-                            Icons.Default.Schedule,
-                            contentDescription = "Pendiente",
-                            tint = PendingOrange,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                    else -> {
-                        val statusText = when (booking.status.uppercase()) {
-                            "CONFIRMED"   -> "Confirmada"
-                            "IN_PROGRESS" -> "En Progreso"
-                            "CANCELLED"   -> "Cancelada"
-                            "COMPLETED"   -> "Completada"
-                            else          -> booking.status
-                        }
-                        Text(statusText, style = MaterialTheme.typography.bodySmall, color = statusColor)
-                    }
+                // Ícono semántico por cada estado (antes: solo PENDING tenía ícono)
+                val statusIcon = when (booking.status.uppercase()) {
+                    "PENDING"     -> Icons.Default.Schedule
+                    "CONFIRMED"   -> Icons.Default.CheckCircle
+                    "IN_PROGRESS" -> Icons.Default.PlayArrow
+                    "CANCELLED"   -> Icons.Default.Cancel
+                    "COMPLETED"   -> Icons.Default.Done
+                    else          -> Icons.Default.Schedule
                 }
+                Icon(
+                    statusIcon,
+                    contentDescription = booking.status,
+                    tint = statusColor,
+                    modifier = Modifier.size(22.dp),
+                )
             }
             Spacer(modifier = Modifier.height(6.dp))
             Row(

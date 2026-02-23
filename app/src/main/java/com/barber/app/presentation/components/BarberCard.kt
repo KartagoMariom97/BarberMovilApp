@@ -30,11 +30,9 @@ fun BarberCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                Color.White
-            }
+            // Color de selección: negro absoluto (antes: secondaryContainer)
+            containerColor = if (isSelected) Color.Black else Color.White,
+            contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
@@ -46,7 +44,8 @@ fun BarberCard(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.secondary,
+                // Ícono blanco cuando seleccionado para contraste con fondo negro
+                tint = if (isSelected) Color.White else MaterialTheme.colorScheme.secondary,
             )
             Column(modifier = Modifier.padding(start = 16.dp)) {
                 Text(
@@ -56,7 +55,8 @@ fun BarberCard(
                 Text(
                     text = barber.email,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Email semitransparente blanco cuando seleccionado
+                    color = if (isSelected) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

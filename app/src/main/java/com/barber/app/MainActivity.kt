@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.core.navigation.BottomNavBar
 import com.barber.app.core.navigation.NavGraph
 import com.barber.app.core.navigation.Screen
+import com.barber.app.core.network.TokenHolder
 import com.barber.app.presentation.theme.BarberTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
@@ -45,7 +47,13 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
 
+    @Inject
+    lateinit var tokenHolder: TokenHolder
+
     private var startDestination by mutableStateOf<Screen?>(null)
+
+    /** true cuando el 401 de JWT expira — activa diálogo y redirección al login */
+    private var isSessionExpired by mutableStateOf(false)
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -67,9 +75,20 @@ class MainActivity : ComponentActivity() {
             setContent {
                 BarberTheme() {
                     startDestination?.let { start ->
-                        MainContent(startDestination = start)
+                        MainContent(
+                            startDestination = start,
+                            isSessionExpired = isSessionExpired,
+                            onSessionExpiredHandled = { isSessionExpired = false },
+                        )
                     }
                 }
+            }
+        }
+
+        // Observa expiración de JWT (401) para redirigir al login
+        lifecycleScope.launch {
+            tokenHolder.sessionExpiredFlow.collect {
+                isSessionExpired = true
             }
         }
     }
@@ -87,7 +106,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun MainContent(startDestination: Screen) {
+private fun MainContent(
+    startDestination: Screen,
+    isSessionExpired: Boolean = false,
+    onSessionExpiredHandled: () -> Unit = {},
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -109,6 +132,17 @@ private fun MainContent(startDestination: Screen) {
 
     var showExitBookingDialog by remember { mutableStateOf(false) }
     var pendingNavigation by remember { mutableStateOf<Screen?>(null) }
+    var showSessionExpiredDialog by remember { mutableStateOf(false) }
+
+    // Cuando el JWT expira: navega al login y muestra diálogo de aviso
+    LaunchedEffect(isSessionExpired) {
+        if (isSessionExpired) {
+            navController.navigate(Screen.Login) {
+                popUpTo(0) { inclusive = true }
+            }
+            showSessionExpiredDialog = true
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -145,6 +179,7 @@ private fun MainContent(startDestination: Screen) {
             )
         }
 
+        // Diálogo de confirmación para salir del flujo de reserva
         if (showExitBookingDialog) {
             Box(
                 modifier = Modifier
@@ -195,6 +230,33 @@ private fun MainContent(startDestination: Screen) {
                         pendingNavigation = null
                     }) {
                         Text("Continuar", color = Color.Black)
+                    }
+                },
+            )
+        }
+
+        // Diálogo que avisa al usuario que su sesión JWT expiró
+        if (showSessionExpiredDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showSessionExpiredDialog = false
+                    onSessionExpiredHandled()
+                },
+                containerColor = Color.White,
+                title = { Text("Sesión vencida", color = Color.Black, fontSize = 18.sp) },
+                text = {
+                    Text(
+                        "Su sesión ha vencido, inicie sesión nuevamente.",
+                        color = Color.Black,
+                        fontSize = 14.sp,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showSessionExpiredDialog = false
+                        onSessionExpiredHandled()
+                    }) {
+                        Text("Aceptar", color = Color.Black)
                     }
                 },
             )

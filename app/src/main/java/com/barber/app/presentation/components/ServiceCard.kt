@@ -35,11 +35,9 @@ fun ServiceCard(
         onClick = onToggle,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                Color.White
-            }
+            // Color de selección: negro absoluto (antes: secondaryContainer)
+            containerColor = if (isSelected) Color.Black else Color.White,
+            contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
@@ -55,19 +53,22 @@ fun ServiceCard(
                 Text(
                     service.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Descripción semitransparente blanca cuando seleccionado
+                    color = if (isSelected) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
             }
             if (onShowInfo != null) {
                 IconButton(onClick = onShowInfo, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Info, "Info", tint = Color.Black, modifier = Modifier.size(18.dp))
+                    // Ícono de info negro/blanco según fondo
+                    Icon(Icons.Default.Info, "Info", tint = if (isSelected) Color.White else Color.Black, modifier = Modifier.size(18.dp))
                 }
             }
             Text(
                 "S/ ${service.price}",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
+                // Precio blanco cuando seleccionado para contraste
+                color = if (isSelected) Color.White else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 4.dp),
             )
         }

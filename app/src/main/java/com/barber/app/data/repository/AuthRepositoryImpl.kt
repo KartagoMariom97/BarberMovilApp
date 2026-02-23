@@ -65,32 +65,31 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun login(email: String): Resource<Client> {
+    /** Login cliente usando JWT (POST /auth/login con role=CLIENT) para habilitar expiración de sesión */
+    override suspend fun login(email: String, password: String): Resource<Unit> {
         return try {
-            val profile = clientApi.loginByEmail(email)
-            val domainProfile = profile.toDomain()
-
-            userPreferencesRepository.saveSession(
-                clientId = domainProfile.id,
-                userId = domainProfile.id,
-                nombres = domainProfile.nombres,
-                email = domainProfile.email,
-                telefono = domainProfile.telefono,
-                dni = domainProfile.dni,
-            )
-
-            Resource.Success(
-                Client(
-                    codigoCliente = domainProfile.id,
-                    userId = domainProfile.id,
-                    nombres = domainProfile.nombres,
-                    email = domainProfile.email,
-                    createdAt = "",
+            val response = authApi.login(
+                LoginRequest(
+                    email = email.trim().lowercase(),
+                    password = password,
+                    role = "CLIENT",
                 )
             )
+            userPreferencesRepository.saveAdminSession(
+                token = response.token,
+                role = response.role,
+                userId = response.userId,
+                entityId = response.entityId,
+                nombres = response.nombres,
+                email = response.email,
+            )
+            tokenHolder.accessToken = response.token
+            Resource.Success(Unit)
         } catch (e: HttpException) {
             val msg = when (e.code()) {
-                404 -> "No se encontró un cliente con ese email"
+                400 -> "Credenciales inválidas."
+                401 -> "No autorizado. Credenciales incorrectas."
+                404 -> "No se encontró un cliente con ese email."
                 else -> "Error del servidor (${e.code()})"
             }
             Resource.Error(msg)

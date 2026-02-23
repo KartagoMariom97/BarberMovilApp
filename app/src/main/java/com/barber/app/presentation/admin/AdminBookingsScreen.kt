@@ -17,19 +17,33 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,6 +51,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,8 +62,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.barber.app.domain.model.AdminBarber
 import com.barber.app.domain.model.AdminBooking
+import com.barber.app.domain.model.AdminClient
+import com.barber.app.domain.model.Service
 import com.barber.app.presentation.components.ErrorOverlay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val statusOptions = listOf(
     null to "Todos",
@@ -88,6 +109,12 @@ fun AdminBookingsScreen(
                     }
                 },
             )
+        },
+        /** FAB para abrir el diálogo de creación de reserva */
+        floatingActionButton = {
+            FloatingActionButton(onClick = { viewModel.showCreateDialog() }) {
+                Icon(Icons.Default.Add, contentDescription = "Crear reserva")
+            }
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -167,6 +194,188 @@ fun AdminBookingsScreen(
             },
         )
     }
+
+    /** Diálogo de creación de reserva: visible cuando showCreateDialog == true */
+    if (state.showCreateDialog) {
+        CreateBookingDialog(
+            clients  = state.clients,
+            barbers  = state.barbers,
+            services = state.services,
+            onDismiss = { viewModel.dismissCreateDialog() },
+            onCreate  = { clientId, barberId, fecha, hora, serviceIds ->
+                // Normaliza hora HH:mm → HH:mm:ss antes de enviar
+                val startTime = if (hora.length == 5) "$hora:00" else hora
+                viewModel.createBooking(clientId, barberId, fecha, startTime, serviceIds)
+            },
+        )
+    }
+}
+
+/**
+ * Diálogo para crear una reserva nueva.
+ * Selectores de cliente y barbero con ExposedDropdownMenu.
+ * Fecha mediante DatePickerDialog (calendario blanco) — hora como TextField.
+ * Servicios con checkboxes.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateBookingDialog(
+    clients: List<AdminClient>,
+    barbers: List<AdminBarber>,
+    services: List<Service>,
+    onDismiss: () -> Unit,
+    onCreate: (clientId: Long, barberId: Long, fecha: String, hora: String, serviceIds: List<Long>) -> Unit,
+) {
+    var selectedClient   by remember { mutableStateOf<AdminClient?>(null) }
+    var selectedBarber   by remember { mutableStateOf<AdminBarber?>(null) }
+    var fecha            by remember { mutableStateOf("") }
+    var hora             by remember { mutableStateOf("") }
+    val selectedServices = remember { mutableStateListOf<Long>() }
+
+    var clientExpanded   by remember { mutableStateOf(false) }
+    var barberExpanded   by remember { mutableStateOf(false) }
+    var showFechaPicker  by remember { mutableStateOf(false) }
+    val fechaPickerState = rememberDatePickerState()
+    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+
+    val canCreate = selectedClient != null && selectedBarber != null &&
+        fecha.isNotBlank() && hora.isNotBlank() && selectedServices.isNotEmpty()
+
+    // DatePickerDialog para la fecha de la reserva — calendario blanco absoluto
+    if (showFechaPicker) {
+        DatePickerDialog(
+            onDismissRequest = { showFechaPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    fechaPickerState.selectedDateMillis?.let { millis ->
+                        fecha = sdf.format(Date(millis))
+                    }
+                    showFechaPicker = false
+                }) { Text("Aceptar", color = Color.Black) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFechaPicker = false }) { Text("Cancelar", color = Color.Black) }
+            },
+        ) {
+            DatePicker(
+                state = fechaPickerState,
+                showModeToggle = false,
+                title = null,
+                headline = null,
+                colors = DatePickerDefaults.colors(containerColor = Color.White),
+            )
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = { Text("Nueva Reserva", color = Color.Black) },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                // Selector cliente
+                item {
+                    ExposedDropdownMenuBox(
+                        expanded = clientExpanded,
+                        onExpandedChange = { clientExpanded = !clientExpanded },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedClient?.nombres ?: "Seleccionar cliente",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Cliente") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(clientExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        )
+                        ExposedDropdownMenu(expanded = clientExpanded, onDismissRequest = { clientExpanded = false }) {
+                            clients.forEach { c ->
+                                DropdownMenuItem(
+                                    text = { Text(c.nombres) },
+                                    onClick = { selectedClient = c; clientExpanded = false },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Selector barbero
+                item {
+                    ExposedDropdownMenuBox(
+                        expanded = barberExpanded,
+                        onExpandedChange = { barberExpanded = !barberExpanded },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedBarber?.nombres ?: "Seleccionar barbero",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Barbero") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(barberExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        )
+                        ExposedDropdownMenu(expanded = barberExpanded, onDismissRequest = { barberExpanded = false }) {
+                            barbers.filter { it.active }.forEach { b ->
+                                DropdownMenuItem(
+                                    text = { Text(b.nombres) },
+                                    onClick = { selectedBarber = b; barberExpanded = false },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Fecha — selección mediante DatePickerDialog
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showFechaPicker = true }) {
+                        OutlinedTextField(
+                            value = fecha,
+                            onValueChange = {},
+                            enabled = false,
+                            label = { Text("Fecha*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = Color.Black,
+                                disabledBorderColor = Color.Gray,
+                                disabledLabelColor = Color.Gray,
+                            ),
+                        )
+                    }
+                }
+                item {
+                    OutlinedTextField(value = hora, onValueChange = { hora = it }, label = { Text("Hora (HH:mm)*") }, modifier = Modifier.fillMaxWidth())
+                }
+
+                // Servicios: checkboxes
+                if (services.isNotEmpty()) {
+                    item { Text("Servicios*:", style = MaterialTheme.typography.labelMedium, color = Color.Black) }
+                    items(services.size) { i ->
+                        val svc = services[i]
+                        val checked = svc.id in selectedServices
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .toggleable(value = checked, onValueChange = {
+                                    if (it) selectedServices.add(svc.id) else selectedServices.remove(svc.id)
+                                }),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = checked, onCheckedChange = null)
+                            Text("${svc.name}  S/ ${"%.2f".format(svc.price)}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onCreate(selectedClient!!.codigoCliente, selectedBarber!!.codigoBarbero, fecha.trim(), hora.trim(), selectedServices.toList()) },
+                enabled = canCreate,
+            ) { Text("Crear", color = if (canCreate) Color.Black else Color.Gray) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Black) }
+        },
+    )
 }
 
 @Composable

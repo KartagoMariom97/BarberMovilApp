@@ -24,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -465,7 +466,8 @@ fun EditBookingDialog(
                         TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
                     }
                 ) {
-                    DatePicker(state = datePickerState)
+                    // Calendario con fondo blanco absoluto
+                    DatePicker(state = datePickerState, colors = DatePickerDefaults.colors(containerColor = Color.White))
                 }
             }
 

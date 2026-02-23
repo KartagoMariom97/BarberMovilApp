@@ -18,6 +18,8 @@ data class AdminBarbersState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+    /** Controla visibilidad del diálogo de creación de barbero */
+    val showCreateDialog: Boolean = false,
 )
 
 @HiltViewModel
@@ -69,6 +71,38 @@ class AdminBarbersViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> _state.update { it.copy(error = result.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    /** Abre el diálogo de creación */
+    fun showCreateDialog()    { _state.update { it.copy(showCreateDialog = true) } }
+    /** Cierra el diálogo de creación */
+    fun dismissCreateDialog() { _state.update { it.copy(showCreateDialog = false) } }
+
+    /** Crea un barbero nuevo con todos los campos requeridos y lo agrega a la lista local */
+    fun createBarber(
+        nombres: String,
+        fechaNacimiento: String,
+        dni: String,
+        genero: String,
+        email: String,
+        password: String,
+        telefono: String?,
+        active: Boolean,
+    ) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null, showCreateDialog = false) }
+            when (val result = repository.createBarber(nombres, fechaNacimiento, dni, genero, email, password, telefono, active)) {
+                is Resource.Success -> _state.update { state ->
+                    state.copy(
+                        barbers = state.barbers + result.data,
+                        isLoading = false,
+                        successMessage = "Barbero creado exitosamente",
+                    )
+                }
+                is Resource.Error   -> _state.update { it.copy(error = result.message, isLoading = false) }
                 is Resource.Loading -> Unit
             }
         }

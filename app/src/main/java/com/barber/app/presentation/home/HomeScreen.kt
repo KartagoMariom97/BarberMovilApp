@@ -14,11 +14,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +56,26 @@ fun HomeScreen(
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadData()
+    }
+
+    // Dialog: notifica al cliente que tiene reserva(s) confirmada(s)
+    if (state.showConfirmedDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissConfirmedDialog() },
+            containerColor = Color.White,
+            title = { Text("¡Reserva Confirmada!", color = Color.Black) },
+            text = {
+                Text(
+                    "Se confirmó tu reserva. Tienes ${state.confirmedCount} reserva(s) confirmada(s).",
+                    color = Color.Black,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissConfirmedDialog() }) {
+                    Text("Aceptar", color = Color.Black)
+                }
+            },
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

@@ -102,7 +102,8 @@ fun NavGraph(
             AdminLoginScreen(
                 onLoginSuccess = { nombres ->
                     navController.navigate(Screen.AdminDashboard) {
-                        popUpTo(Screen.AdminLogin) { inclusive = true }
+                        // Limpia TODO el back stack (incluyendo Login) para evitar retroceder al login
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateBack = { navController.popBackStack() },

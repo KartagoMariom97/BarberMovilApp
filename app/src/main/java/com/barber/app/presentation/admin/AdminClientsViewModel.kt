@@ -18,6 +18,8 @@ data class AdminClientsState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+    /** Controla visibilidad del diálogo de creación de cliente */
+    val showCreateDialog: Boolean = false,
 )
 
 @HiltViewModel
@@ -55,6 +57,29 @@ class AdminClientsViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> _state.update { it.copy(error = result.message, isLoading = false) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    /** Abre el diálogo de creación */
+    fun showCreateDialog()    { _state.update { it.copy(showCreateDialog = true) } }
+    /** Cierra el diálogo de creación */
+    fun dismissCreateDialog() { _state.update { it.copy(showCreateDialog = false) } }
+
+    /** Crea un cliente nuevo y recarga la lista tras éxito */
+    fun createClient(
+        nombres: String, fechaNacimiento: String, dni: String, genero: String,
+        email: String?, telefono: String, password: String?,
+    ) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null, showCreateDialog = false) }
+            when (val result = repository.createClient(nombres, fechaNacimiento, dni, genero, email, telefono, password)) {
+                is Resource.Success -> {
+                    _state.update { it.copy(successMessage = "Cliente creado exitosamente") }
+                    loadClients() // recarga lista para obtener datos completos
+                }
+                is Resource.Error   -> _state.update { it.copy(error = result.message, isLoading = false) }
                 is Resource.Loading -> Unit
             }
         }

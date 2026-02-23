@@ -2,6 +2,7 @@ package com.barber.app.data.repository
 
 import com.barber.app.core.common.Resource
 import com.barber.app.data.remote.api.AdminClientApi
+import com.barber.app.data.remote.dto.AdminCreateClientRequest
 import com.barber.app.data.remote.dto.AdminUpdateClientRequest
 import com.barber.app.domain.model.AdminClient
 import com.barber.app.domain.repository.AdminClientRepository
@@ -30,6 +31,29 @@ class AdminClientRepositoryImpl @Inject constructor(
             Resource.Success(api.getAllClients().map { it.toDomain() })
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al obtener los clientes"))
+        }
+    }
+
+    /** Crea cliente llamando POST /admin/clients; retorna Unit y el VM recarga la lista */
+    override suspend fun createClient(
+        nombres: String, fechaNacimiento: String, dni: String, genero: String,
+        email: String?, telefono: String, password: String?,
+    ): Resource<Unit> {
+        return try {
+            api.createClient(
+                AdminCreateClientRequest(
+                    nombres = nombres,
+                    fechaNacimiento = fechaNacimiento,
+                    dni = dni,
+                    genero = genero,
+                    email = email,
+                    telefono = telefono,
+                    password = password,
+                ),
+            )
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al crear el cliente"))
         }
     }
 

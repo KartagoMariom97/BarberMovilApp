@@ -3,6 +3,7 @@ package com.barber.app.data.repository
 import com.barber.app.core.common.Resource
 import com.barber.app.data.remote.api.AdminBookingApi
 import com.barber.app.data.remote.dto.AdminChangeStatusRequest
+import com.barber.app.data.remote.dto.CreateBookingRequest
 import com.barber.app.domain.model.AdminBooking
 import com.barber.app.domain.repository.AdminBookingRepository
 import retrofit2.HttpException
@@ -51,6 +52,30 @@ class AdminBookingRepositoryImpl @Inject constructor(
             Resource.Success(response.toDomain())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al cambiar el estado"))
+        }
+    }
+
+    /** Crea reserva llamando POST /bookings; retorna Unit porque el ViewModel recarga la lista */
+    override suspend fun createBooking(
+        clientId: Long,
+        barberId: Long,
+        fechaReserva: String,
+        startTime: String,
+        serviceIds: List<Long>,
+    ): Resource<Unit> {
+        return try {
+            api.createBooking(
+                CreateBookingRequest(
+                    clientId = clientId,
+                    barberId = barberId,
+                    fechaReserva = fechaReserva,
+                    startTime = startTime,
+                    serviceIds = serviceIds,
+                ),
+            )
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al crear la reserva"))
         }
     }
 }
