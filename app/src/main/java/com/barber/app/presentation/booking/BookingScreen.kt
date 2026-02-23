@@ -1,6 +1,7 @@
 package com.barber.app.presentation.booking
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -470,7 +472,7 @@ private fun DateTimeStep(state: BookingState, viewModel: BookingViewModel) {
             OutlinedTextField(
                 value = formatDateForDisplay(state.selectedDate),
                 onValueChange = {},
-                label = { Text("Fecha") },
+                label = { Text("Ingrese fecha") },
                 placeholder = { Text("Toca para elegir fecha") },
                 singleLine = true,
                 enabled = false,
@@ -482,7 +484,7 @@ private fun DateTimeStep(state: BookingState, viewModel: BookingViewModel) {
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = "Elegir fecha")
+                    Icon(Icons.Default.CalendarMonth, contentDescription = "Elegir fecha", tint = Color.Black)
                 },
             )
         }
@@ -498,7 +500,7 @@ private fun DateTimeStep(state: BookingState, viewModel: BookingViewModel) {
             OutlinedTextField(
                 value = if (state.selectedTime.isNotBlank()) formatTimeWithAmPm(state.selectedTime) else "",
                 onValueChange = {},
-                label = { Text("Hora") },
+                label = { Text("Ingrese Hora") },
                 placeholder = { Text("Toca para elegir hora") },
                 singleLine = true,
                 enabled = false,
@@ -510,7 +512,7 @@ private fun DateTimeStep(state: BookingState, viewModel: BookingViewModel) {
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
-                    Icon(Icons.Default.Schedule, contentDescription = "Elegir hora")
+                    Icon(Icons.Default.Schedule, contentDescription = "Elegir hora", tint = Color.Black)
                 },
             )
         }
@@ -733,6 +735,19 @@ private fun ScrollPickerColumn(
     }
 }
 
+    @Composable
+    private fun SummaryChip(text: String) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Color.White)
+                .border(1.dp, Color.Black, RoundedCornerShape(50))
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+        ) {
+            Text(text, style = MaterialTheme.typography.bodySmall, color = Color.Black)
+        }
+    }
+
 @Composable
 private fun ConfirmationStep(state: BookingState, viewModel: BookingViewModel) {
     Column(
@@ -741,18 +756,37 @@ private fun ConfirmationStep(state: BookingState, viewModel: BookingViewModel) {
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(
+                    containerColor = Color.White, // ← CAMBIAR COLOR: fondo del dialog de detalle
+                )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Resumen de tu reserva", style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Barbero: ${state.selectedBarber?.nombres ?: ""}")
-                Text("Fecha: ${formatDateForDisplay(state.selectedDate)}")
-                Text("Hora: ${formatTimeWithAmPm(state.selectedTime)}")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Barbero:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    SummaryChip(state.selectedBarber?.nombres ?: "")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Fecha:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    SummaryChip(formatDateForDisplay(state.selectedDate))
+                }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Servicios:", style = MaterialTheme.typography.titleMedium)
-                state.services.filter { state.selectedServices.contains(it.id) }.forEach { service ->
-                    Text("  - ${service.name} (S/ ${service.price})")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Hora:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    SummaryChip(formatTimeWithAmPm(state.selectedTime))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Servicios:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    state.services.filter { state.selectedServices.contains(it.id) }.forEach { service ->
+                        SummaryChip(service.name)
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 val total = state.services
@@ -760,8 +794,9 @@ private fun ConfirmationStep(state: BookingState, viewModel: BookingViewModel) {
                     .sumOf { it.price.toDouble() }
                 Text(
                     "Total: S/ ${"%.2f".format(total)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
             }
         }

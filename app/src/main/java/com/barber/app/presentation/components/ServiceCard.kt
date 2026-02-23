@@ -61,7 +61,7 @@ fun ServiceCard(
             }
             if (onShowInfo != null) {
                 IconButton(onClick = onShowInfo, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Info, "Info", tint = Color(0xFF9E9E9E), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Info, "Info", tint = Color.Black, modifier = Modifier.size(18.dp))
                 }
             }
             Text(
