@@ -1,5 +1,6 @@
 package com.barber.app.data.remote.dto
 
+import com.barber.app.data.local.entity.ServiceEntity
 import com.barber.app.domain.model.Service
 import com.google.gson.annotations.SerializedName
 import java.math.BigDecimal
@@ -19,5 +20,15 @@ data class ServiceResponse(
         description = description ?: "",
         estimatedMinutes = estimatedMinutes,
         price = price,
+    )
+
+    fun toEntity() = ServiceEntity(
+        id = id,
+        name = name,
+        description = description,
+        estimatedMinutes = estimatedMinutes,
+        price = price.toPlainString(),
+        createdAt = createdAt,
+        updatedAt = updatedAt,
     )
 }

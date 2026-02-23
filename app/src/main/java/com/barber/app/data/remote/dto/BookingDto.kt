@@ -1,5 +1,7 @@
 package com.barber.app.data.remote.dto
 
+import com.barber.app.data.local.entity.BookingEntity
+import com.barber.app.data.local.entity.BookingServiceDetailEntity
 import com.barber.app.domain.model.Booking
 import com.barber.app.domain.model.BookingServiceDetail
 import com.google.gson.annotations.SerializedName
@@ -69,6 +71,20 @@ data class BookingDetailResponse(
         endTime = endTime,
         services = services?.map { it.toDomain() } ?: emptyList(),
     )
+
+    fun toEntity() = BookingEntity(
+        id = id,
+        clientName = clientName ?: "",
+        barberName = barberName ?: "",
+        fechaReserva = fechaReserva ?: "",
+        status = status ?: "",
+        startTime = startTime ?: "",
+        endTime = endTime,
+        createdAt = null,
+    )
+
+    fun serviceEntities(): List<BookingServiceDetailEntity> =
+        services?.map { it.toEntity(id) } ?: emptyList()
 }
 
 data class BookingServiceDetailResponse(
@@ -82,6 +98,14 @@ data class BookingServiceDetailResponse(
         name = name,
         minutes = minutes,
         price = price,
+    )
+
+    fun toEntity(bookingId: Long) = BookingServiceDetailEntity(
+        bookingId = bookingId,
+        serviceId = serviceId,
+        name = name,
+        minutes = minutes,
+        price = price.toPlainString(),
     )
 }
 

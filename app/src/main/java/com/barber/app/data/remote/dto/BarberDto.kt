@@ -1,5 +1,6 @@
 package com.barber.app.data.remote.dto
 
+import com.barber.app.data.local.entity.BarberEntity
 import com.barber.app.domain.model.Barber
 import com.google.gson.annotations.SerializedName
 
@@ -20,5 +21,15 @@ data class BarberResponse(
         telefono = telefono ?: "",
         active = active,
         createdAt = createdAt ?: "",
+    )
+
+    fun toEntity() = BarberEntity(
+        codigoBarbero = codigoBarbero,
+        userId = userId,
+        nombres = nombres,
+        email = email,
+        telefono = telefono,
+        active = active,
+        createdAt = createdAt,
     )
 }

@@ -47,7 +47,7 @@ fun DetailOverlay(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.7f))
+                .background(Color.Black.copy(alpha = 0.7f)) // ← CAMBIAR COLOR: opacidad del fondo del overlay
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -67,7 +67,7 @@ fun DetailOverlay(
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White,
+                    containerColor = Color.White, // ← CAMBIAR COLOR: fondo del dialog de detalle
                 ),
             ) {
                 Column(

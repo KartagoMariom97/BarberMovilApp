@@ -1,11 +1,17 @@
 package com.barber.app.data.repository
 
 import com.barber.app.core.common.Resource
+import com.barber.app.data.local.dao.BookingDao
+import com.barber.app.data.local.entity.BookingEntity
+import com.barber.app.data.local.entity.toDomain
 import com.barber.app.data.remote.api.AppointmentApi
 import com.barber.app.data.remote.api.ClientApi
 import com.barber.app.data.remote.dto.CreateBookingRequest
 import com.barber.app.domain.model.Booking
 import com.barber.app.domain.repository.BookingRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -22,6 +28,7 @@ private fun mapNetworkException(e: Exception, fallback: String): String {
 class BookingRepositoryImpl @Inject constructor(
     private val appointmentApi: AppointmentApi,
     private val clientApi: ClientApi,
+    private val bookingDao: BookingDao,
 ) : BookingRepository {
 
     override suspend fun createBooking(
@@ -41,6 +48,18 @@ class BookingRepositoryImpl @Inject constructor(
                     serviceIds = serviceIds,
                 )
             )
+            // Write-through: persistir en Room tras éxito en red
+            val entity = BookingEntity(
+                id = response.id,
+                clientName = response.clientName ?: "",
+                barberName = response.barberName ?: "",
+                fechaReserva = response.fechaReserva ?: "",
+                status = response.status ?: "",
+                startTime = response.startTime ?: "",
+                endTime = response.endTime,
+                createdAt = response.createdAt,
+            )
+            bookingDao.upsertBookings(listOf(entity))
             Resource.Success(response.toDomain())
         } catch (e: HttpException) {
             val backendMsg = try {
@@ -64,11 +83,29 @@ class BookingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getClientBookings(clientId: Long): Resource<List<Booking>> {
+        // Cache-first: devuelve datos locales inmediatamente
+        val cachedEntities = bookingDao.getBookings()
+        if (cachedEntities.isNotEmpty()) {
+            val cachedBookings = cachedEntities.map { entity ->
+                val details = bookingDao.getServiceDetails(entity.id)
+                entity.toDomain(details)
+            }
+            CoroutineScope(Dispatchers.IO).launch { syncBookings(clientId) }
+            return Resource.Success(cachedBookings)
+        }
+        return syncBookings(clientId)
+    }
+
+    private suspend fun syncBookings(clientId: Long): Resource<List<Booking>> {
         return try {
             val summaries = clientApi.getClientBookings(clientId)
             val bookings = summaries.map { summary ->
                 try {
                     val detail = appointmentApi.getBookingById(summary.bookingId)
+                    // Persistir detalle completo en Room
+                    bookingDao.upsertBookings(listOf(detail.toEntity()))
+                    bookingDao.deleteServiceDetails(detail.id)
+                    bookingDao.upsertServiceDetails(detail.serviceEntities())
                     detail.toDomain()
                 } catch (_: Exception) {
                     summary.toDomain()
@@ -83,6 +120,9 @@ class BookingRepositoryImpl @Inject constructor(
     override suspend fun getBookingById(id: Long): Resource<Booking> {
         return try {
             val response = appointmentApi.getBookingById(id)
+            bookingDao.upsertBookings(listOf(response.toEntity()))
+            bookingDao.deleteServiceDetails(response.id)
+            bookingDao.upsertServiceDetails(response.serviceEntities())
             Resource.Success(response.toDomain())
         } catch (e: Exception) {
             Resource.Error(mapNetworkException(e, "Error al obtener la reserva"))
@@ -92,6 +132,8 @@ class BookingRepositoryImpl @Inject constructor(
     override suspend fun cancelBooking(id: Long): Resource<Booking> {
         return try {
             val response = appointmentApi.cancelBooking(id)
+            // Write-through: marcar como cancelado en Room
+            bookingDao.markCancelled(id)
             Resource.Success(response.toDomain())
         } catch (e: HttpException) {
             val backendMsg = try {
@@ -123,44 +165,50 @@ class BookingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateBooking(
-    bookingId: Long,
-    clientId: Long,
-    barberId: Long,
-    fecha: String,
-    hora: String,
-    serviceIds: List<Long>
+        bookingId: Long,
+        clientId: Long,
+        barberId: Long,
+        fecha: String,
+        hora: String,
+        serviceIds: List<Long>,
     ): Resource<Unit> {
-    return try {
-        appointmentApi.updateBooking(
-            bookingId = bookingId,
-            request = CreateBookingRequest(
-                clientId = clientId,
-                barberId = barberId,
-                fechaReserva = fecha,
-                startTime = hora,
-                serviceIds = serviceIds
+        return try {
+            appointmentApi.updateBooking(
+                bookingId = bookingId,
+                request = CreateBookingRequest(
+                    clientId = clientId,
+                    barberId = barberId,
+                    fechaReserva = fecha,
+                    startTime = hora,
+                    serviceIds = serviceIds,
+                )
             )
-        )
-        Resource.Success(Unit)
-    } catch (e: HttpException) {
-        val backendMsg = try {
-            val errorBody = e.response()?.errorBody()?.string()
-            errorBody?.let {
-                val json = com.google.gson.JsonParser.parseString(it).asJsonObject
-                json.get("message")?.asString
+            // Write-through: refrescar datos actualizados en Room
+            try {
+                val updated = appointmentApi.getBookingById(bookingId)
+                bookingDao.upsertBookings(listOf(updated.toEntity()))
+                bookingDao.deleteServiceDetails(bookingId)
+                bookingDao.upsertServiceDetails(updated.serviceEntities())
+            } catch (_: Exception) { /* si falla el refresh, la caché se actualizará en el próximo sync */ }
+            Resource.Success(Unit)
+        } catch (e: HttpException) {
+            val backendMsg = try {
+                val errorBody = e.response()?.errorBody()?.string()
+                errorBody?.let {
+                    val json = com.google.gson.JsonParser.parseString(it).asJsonObject
+                    json.get("message")?.asString
+                }
+            } catch (_: Exception) { null }
+
+            val msg = backendMsg ?: when (e.code()) {
+                400 -> "Datos inválidos para actualizar la reserva."
+                404 -> "Reserva no encontrada."
+                409 -> "Ya existe una reserva en ese horario."
+                else -> "Error del servidor (${e.code()})"
             }
-        } catch (_: Exception) { null }
-
-        val msg = backendMsg ?: when (e.code()) {
-            400 -> "Datos inválidos para actualizar la reserva."
-            404 -> "Reserva no encontrada."
-            409 -> "Ya existe una reserva en ese horario."
-            else -> "Error del servidor (${e.code()})"
+            Resource.Error(msg)
+        } catch (e: Exception) {
+            Resource.Error(mapNetworkException(e, "Error al actualizar la reserva"))
         }
-        Resource.Error(msg)
-    } catch (e: Exception) {
-        Resource.Error(mapNetworkException(e, "Error al actualizar la reserva"))
     }
-}
-
 }

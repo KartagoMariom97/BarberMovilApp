@@ -56,7 +56,7 @@ fun LoadingIndicator() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black) // Opacidad total — tapa navbar y todo el contenido
+                .background(Color.Black.copy(alpha = 0.6f)) // Opacidad total — tapa navbar y todo el contenido
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
