@@ -4,6 +4,7 @@ import com.barber.app.core.common.Constants
 import com.barber.app.core.network.AuthAuthenticator
 import com.barber.app.core.network.AuthInterceptor
 import com.barber.app.data.remote.api.AdminBarberApi
+import com.barber.app.data.remote.api.AuthApi
 import com.barber.app.data.remote.api.AdminBookingApi
 import com.barber.app.data.remote.api.AdminClientApi
 import com.barber.app.data.remote.api.AdminServiceApi
@@ -111,4 +112,9 @@ object NetworkModule {
     @Singleton
     fun provideAdminBookingApi(retrofit: Retrofit): AdminBookingApi =
         retrofit.create(AdminBookingApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): AuthApi =
+        retrofit.create(AuthApi::class.java)
 }

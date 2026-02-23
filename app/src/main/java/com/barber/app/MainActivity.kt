@@ -58,7 +58,11 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val prefs = userPreferencesRepository.userPreferences.first()
-            startDestination = if (prefs.isLoggedIn) Screen.Home else Screen.Login
+            startDestination = when {
+                prefs.isLoggedIn && prefs.role in listOf("ADMIN", "BARBER") -> Screen.AdminDashboard
+                prefs.isLoggedIn -> Screen.Home
+                else -> Screen.Login
+            }
 
             setContent {
                 BarberTheme() {
@@ -91,7 +95,9 @@ private fun MainContent(startDestination: Screen) {
     val noBottomBarRoutes = listOf(
         Screen.Login::class.qualifiedName,
         Screen.Register::class.qualifiedName,
+        Screen.AdminLogin::class.qualifiedName,
         Screen.AdminDashboard::class.qualifiedName,
+        Screen.AdminProfile::class.qualifiedName,
         Screen.AdminBarbers::class.qualifiedName,
         Screen.AdminServices::class.qualifiedName,
         Screen.AdminClients::class.qualifiedName,

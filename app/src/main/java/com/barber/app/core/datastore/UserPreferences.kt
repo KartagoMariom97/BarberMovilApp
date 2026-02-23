@@ -8,4 +8,8 @@ data class UserPreferences(
     val telefono: String = "",
     val dni: String = "",
     val isLoggedIn: Boolean = false,
+    // Admin / Barber JWT session
+    val token: String = "",
+    val role: String = "",
+    val entityId: Long = -1L,
 )

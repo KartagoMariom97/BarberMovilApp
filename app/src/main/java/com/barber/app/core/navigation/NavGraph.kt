@@ -9,6 +9,8 @@ import com.barber.app.presentation.admin.AdminBookingsScreen
 import com.barber.app.presentation.admin.AdminBarbersScreen
 import com.barber.app.presentation.admin.AdminClientsScreen
 import com.barber.app.presentation.admin.AdminDashboardScreen
+import com.barber.app.presentation.admin.AdminLoginScreen
+import com.barber.app.presentation.admin.AdminProfileScreen
 import com.barber.app.presentation.admin.AdminServicesScreen
 import com.barber.app.presentation.appointments.AppointmentsScreen
 import com.barber.app.presentation.auth.LoginScreen
@@ -39,7 +41,7 @@ fun NavGraph(
                     }
                 },
                 onNavigateToAdmin = {
-                    navController.navigate(Screen.AdminDashboard)
+                    navController.navigate(Screen.AdminLogin)
                 },
             )
         }
@@ -96,13 +98,40 @@ fun NavGraph(
         }
 
         // ─── Admin ────────────────────────────────────────────────────────────────
+        composable<Screen.AdminLogin> {
+            AdminLoginScreen(
+                onLoginSuccess = { nombres ->
+                    navController.navigate(Screen.AdminDashboard) {
+                        popUpTo(Screen.AdminLogin) { inclusive = true }
+                    }
+                },
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
         composable<Screen.AdminDashboard> {
             AdminDashboardScreen(
-                onNavigateBack = { navController.popBackStack() },
                 onNavigateToBarbers  = { navController.navigate(Screen.AdminBarbers) },
                 onNavigateToServices = { navController.navigate(Screen.AdminServices) },
                 onNavigateToClients  = { navController.navigate(Screen.AdminClients) },
                 onNavigateToBookings = { navController.navigate(Screen.AdminBookings) },
+                onNavigateToProfile  = { navController.navigate(Screen.AdminProfile) },
+                onLogout = {
+                    navController.navigate(Screen.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable<Screen.AdminProfile> {
+            AdminProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Screen.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
 

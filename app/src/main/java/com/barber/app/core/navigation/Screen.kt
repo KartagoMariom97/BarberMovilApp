@@ -12,7 +12,9 @@ sealed class Screen {
     @Serializable data object Profile : Screen()
 
     // Admin
+    @Serializable data object AdminLogin : Screen()
     @Serializable data object AdminDashboard : Screen()
+    @Serializable data object AdminProfile : Screen()
     @Serializable data object AdminBarbers : Screen()
     @Serializable data object AdminServices : Screen()
     @Serializable data object AdminClients : Screen()

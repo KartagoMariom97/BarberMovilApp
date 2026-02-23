@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,6 +24,9 @@ class UserPreferencesRepository @Inject constructor(
         val TELEFONO = stringPreferencesKey("telefono")
         val DNI = stringPreferencesKey("dni")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val TOKEN = stringPreferencesKey("token")
+        val ROLE = stringPreferencesKey("role")
+        val ENTITY_ID = longPreferencesKey("entity_id")
     }
 
     val userPreferences: Flow<UserPreferences> = dataStore.data.map { prefs ->
@@ -34,6 +38,9 @@ class UserPreferencesRepository @Inject constructor(
             telefono = prefs[TELEFONO] ?: "",
             dni = prefs[DNI] ?: "",
             isLoggedIn = prefs[IS_LOGGED_IN] ?: false,
+            token = prefs[TOKEN] ?: "",
+            role = prefs[ROLE] ?: "",
+            entityId = prefs[ENTITY_ID] ?: -1L,
         )
     }
 
@@ -54,6 +61,29 @@ class UserPreferencesRepository @Inject constructor(
             prefs[DNI] = dni
             prefs[IS_LOGGED_IN] = true
         }
+    }
+
+    suspend fun saveAdminSession(
+        token: String,
+        role: String,
+        userId: Long,
+        entityId: Long,
+        nombres: String,
+        email: String,
+    ) {
+        dataStore.edit { prefs ->
+            prefs[TOKEN] = token
+            prefs[ROLE] = role
+            prefs[USER_ID] = userId
+            prefs[ENTITY_ID] = entityId
+            prefs[NOMBRES] = nombres
+            prefs[EMAIL] = email
+            prefs[IS_LOGGED_IN] = true
+        }
+    }
+
+    suspend fun getTokenOnce(): String? {
+        return dataStore.data.map { it[TOKEN] }.firstOrNull()?.takeIf { it.isNotEmpty() }
     }
 
     suspend fun clearSession() {

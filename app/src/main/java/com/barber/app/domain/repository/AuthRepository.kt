@@ -15,5 +15,7 @@ interface AuthRepository {
 
     suspend fun login(email: String): Resource<Client>
 
+    suspend fun adminLogin(email: String, password: String, role: String): Resource<Unit>
+
     suspend fun logout()
 }
