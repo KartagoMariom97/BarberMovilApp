@@ -40,6 +40,7 @@ import com.barber.app.domain.model.Barber
 import com.barber.app.domain.model.Service
 
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,9 +63,8 @@ private fun formatTimeDisplay(time: String): String {
     return "$displayHour:$minute $amPm"
 }
 
-private val GrayButton = Color(0xFF9E9E9E)
 private val YellowButton = Color(0xFFFFC107)
-private val RedButton = Color(0xFFE53935)
+private val RedButton    = Color(0xFFE53935)
 private val PendingOrange = Color(0xFFFF9800)
 
 @Composable
@@ -73,7 +73,7 @@ fun BookingCard(
     barbers: List<Barber>,
     services: List<Service>,
     clientId: Long,
-    showActions: Boolean = true, // 👈 NUEVO
+    showActions: Boolean = true,
     onUpdateBooking: (
         clientId: Long,
         barberId: Long,
@@ -86,8 +86,7 @@ fun BookingCard(
     modifier: Modifier = Modifier,
 ) {
     var showConfirmDialog by remember { mutableStateOf(false) }
-
-    var showEditDialog by remember { mutableStateOf(false) }
+    var showEditDialog    by remember { mutableStateOf(false) }
 
     if (showConfirmDialog && onCancel != null) {
         AlertDialog(
@@ -104,9 +103,7 @@ fun BookingCard(
                 TextButton(onClick = {
                     showConfirmDialog = false
                     onCancel()
-                }) {
-                    Text("Sí, cancelar", color = Color.Black)
-                }
+                }) { Text("Sí, cancelar", color = Color.Black) }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
@@ -123,30 +120,24 @@ fun BookingCard(
             services = services,
             clientId = clientId,
             onDismiss = { showEditDialog = false },
-            onSave = { clientId, barberId, fecha, hora, serviceIds ->
-                onUpdateBooking(
-                    clientId,
-                    barberId,
-                    fecha,
-                    hora,
-                    serviceIds
-                )
-            }
+            onSave = { cId, barberId, fecha, hora, serviceIds ->
+                onUpdateBooking(cId, barberId, fecha, hora, serviceIds)
+            },
         )
     }
 
     val statusColor = when (booking.status.uppercase()) {
-        "PENDING" -> PendingOrange
+        "PENDING"   -> PendingOrange
         "CONFIRMED" -> MaterialTheme.colorScheme.secondary
         "CANCELLED" -> MaterialTheme.colorScheme.error
         "COMPLETED" -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurface
+        else        -> MaterialTheme.colorScheme.onSurface
     }
 
     val isActive = booking.status.uppercase() in listOf("PENDING", "CONFIRMED")
 
     Card(
-        // ← CAMBIAR COLOR: añadir colors = CardDefaults.cardColors(containerColor = Color.White) para fondo de la card
+        // ← CAMBIAR COLOR: fondo de la card (containerColor)
         colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // ← CAMBIAR: sombra de la card
@@ -172,7 +163,7 @@ fun BookingCard(
                             "CONFIRMED" -> "Confirmada"
                             "CANCELLED" -> "Cancelada"
                             "COMPLETED" -> "Completada"
-                            else -> booking.status
+                            else        -> booking.status
                         }
                         Text(statusText, style = MaterialTheme.typography.bodySmall, color = statusColor)
                     }
@@ -181,14 +172,14 @@ fun BookingCard(
             Spacer(modifier = Modifier.height(6.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text("Barbero:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 BookingServiceChip(name = booking.barberName)
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text("Hora:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 BookingServiceChip(name = formatTimeDisplay(booking.startTime))
@@ -207,13 +198,14 @@ fun BookingCard(
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     booking.services.forEach { svc ->
                         BookingServiceChip(name = svc.name)
                     }
                 }
                 val total = booking.services.sumOf { it.price.toDouble() }
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     "Total: S/ ${"%.2f".format(total)}",
                     style = MaterialTheme.typography.titleSmall,
@@ -223,25 +215,19 @@ fun BookingCard(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // [CAMBIO] Icono de detalles cambiado a negro absoluto (antes era gris 0xFF9E9E9E)
                 IconButton(onClick = { onShowDetail?.invoke() }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Info, "Detalles", tint = GrayButton, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Info, "Detalles", tint = Color.Black, modifier = Modifier.size(20.dp))
                 }
-                // 👇 SOLO SI showActions ES TRUE
                 if (showActions && isActive) {
-                    IconButton(
-                        onClick = { showEditDialog = true },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Editar",
-                        tint = YellowButton,
-                        modifier = Modifier.size(20.dp)
-                        )
+                    IconButton(onClick = { showEditDialog = true }, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Edit, "Editar", tint = YellowButton, modifier = Modifier.size(20.dp))
                     }
                 }
                 if (showActions && isActive && onCancel != null) {
@@ -255,21 +241,22 @@ fun BookingCard(
 }
 
 /**
- * Chip de servicio en las tarjetas de reserva.
- * Para cambiar el COLOR: edita las constantes marcadas con "← CAMBIAR COLOR" aquí abajo.
+ * Chip genérico para servicios y datos de reserva.
+ * [CAMBIO] borde ahora es negro absoluto (antes tenía alpha 0.22f).
  */
 @Composable
 private fun BookingServiceChip(name: String) {
-    val containerColor = Color.White                     // ← CAMBIAR COLOR: fondo del chip (ej: Color(0xFFF5F5F5))
-    val textColor      = Color.Black                     // ← CAMBIAR COLOR: texto del chip
-    val borderColor    = Color.Black.copy(alpha = 0.22f) // ← CAMBIAR COLOR: borde del chip
+    val containerColor = Color.White  // ← CAMBIAR COLOR: fondo del chip
+    val textColor      = Color.Black  // ← CAMBIAR COLOR: texto del chip
+    // [CAMBIO] borderColor cambiado a negro absoluto (sin alpha) para mayor visibilidad
+    val borderColor    = Color.Black
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(containerColor)
             .border(1.dp, borderColor, RoundedCornerShape(50))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
         Text(
             text = name,
@@ -279,76 +266,113 @@ private fun BookingServiceChip(name: String) {
     }
 }
 
+/**
+ * Chip de estado con color semántico por estado de la reserva.
+ * [CAMBIO] nuevo composable — convierte el estado de texto plano a chip coloreado.
+ *   PENDING   → fondo amarillo absoluto  (#FFC107), texto blanco
+ *   CONFIRMED → fondo verde  (#4CAF50), texto blanco
+ *   CANCELLED → fondo rojo   (#E53935), texto blanco
+ *   COMPLETED → fondo azul   (#1565C0), texto blanco
+ */
+@Composable
+private fun BookingStatusChip(status: String) {
+    // [CAMBIO] cada estado tiene su color semántico propio, letras blancas para contraste
+    val (bgColor, label) = when (status.uppercase()) {
+        "PENDING"   -> Color(0xFFFFC107) to "Pendiente"   // amarillo absoluto
+        "CONFIRMED" -> Color(0xFF4CAF50) to "Confirmada"  // verde
+        "CANCELLED" -> Color(0xFFE53935) to "Cancelada"   // rojo
+        "COMPLETED" -> Color(0xFF1565C0) to "Completada"  // azul
+        else        -> Color(0xFF9E9E9E) to status
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(bgColor)
+            // [CAMBIO] borde del chip de estado usa el mismo color semántico (sin borde visible)
+            .border(1.dp, bgColor, RoundedCornerShape(50))
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            // [CAMBIO] texto blanco para contraste sobre fondo de color
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
 @Composable
 fun BookingDetailContent(booking: Booking) {
-    val darkText = Color.Black.copy(alpha = 0.8f)
+    // [CAMBIO] darkText ahora es negro absoluto (antes era Color.Black.copy(alpha = 0.8f))
+    val darkText = Color.Black
 
     // Fecha
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Fecha:", style = MaterialTheme.typography.bodySmall, color = darkText)
+        // [CAMBIO] etiqueta "Fecha:" ahora usa bodyMedium (era bodySmall) y negro absoluto
+        Text("Fecha:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
         BookingServiceChip(name = booking.fechaReserva)
     }
 
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(6.dp))
 
     // Hora inicio
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Hora:", style = MaterialTheme.typography.bodySmall, color = darkText)
+        // [CAMBIO] etiqueta "Hora:" bodyMedium + negro absoluto
+        Text("Hora:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
         BookingServiceChip(name = formatTimeDisplay(booking.startTime))
     }
 
     // Hora fin (opcional)
     if (!booking.endTime.isNullOrBlank()) {
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Hora fin:", style = MaterialTheme.typography.bodySmall, color = darkText)
+            // [CAMBIO] etiqueta "Hora fin:" bodyMedium + negro absoluto
+            Text("Hora fin:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
             BookingServiceChip(name = formatTimeDisplay(booking.endTime))
         }
     }
 
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(6.dp))
 
     // Barbero
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Barbero:", style = MaterialTheme.typography.bodySmall, color = darkText)
+        // [CAMBIO] etiqueta "Barbero:" bodyMedium + negro absoluto
+        Text("Barbero:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
         BookingServiceChip(name = booking.barberName)
     }
 
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(6.dp))
 
-    // Estado (texto plano, el status ya tiene semántica de color propia)
-    val statusLabel = when (booking.status.uppercase()) {
-        "PENDING"   -> "Pendiente"
-        "CONFIRMED" -> "Confirmada"
-        "CANCELLED" -> "Cancelada"
-        "COMPLETED" -> "Completada"
-        else        -> booking.status
-    }
+    // Estado — [CAMBIO] reemplazado de texto plano a BookingStatusChip con color semántico
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Estado:", style = MaterialTheme.typography.bodySmall, color = darkText)
-        Text(statusLabel, style = MaterialTheme.typography.bodyMedium, color = darkText)
+        Text("Estado:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
+        // [CAMBIO] chip de estado con color propio por tipo (amarillo/verde/rojo/azul)
+        BookingStatusChip(status = booking.status)
     }
 
     // Servicios
     if (booking.services.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(8.dp))
+        // [CAMBIO] etiqueta "Servicios:" bodyMedium + negro absoluto
+        Text("Servicios:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(6.dp))
-        Text("Servicios:", style = MaterialTheme.typography.labelMedium, color = darkText)
-        Spacer(modifier = Modifier.height(4.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -359,12 +383,14 @@ fun BookingDetailContent(booking: Booking) {
                 BookingServiceChip(name = svc.name)
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         val total = booking.services.sumOf { it.price.toDouble() }
+        // [CAMBIO] texto del total negro absoluto y bodyLarge para mayor legibilidad
         Text(
             "Total: S/ ${"%.2f".format(total)}",
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.bodyLarge,
             color = Color.Black,
+            fontWeight = FontWeight.Bold,
         )
     }
 }

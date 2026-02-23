@@ -33,6 +33,7 @@ fun BottomNavBar(
     onItemClick: (Screen) -> Unit,
     onBeforeNavigate: ((Screen) -> Boolean)? = null,
 ) {
+    // [CAMBIO] containerColor blanco para toda la barra
     NavigationBar(containerColor = Color.White) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.screen::class.qualifiedName
@@ -46,7 +47,15 @@ fun BottomNavBar(
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = Color.Black.copy(alpha = 0.08f),
+                    // [CAMBIO] indicador de selección negro absoluto
+                    indicatorColor = Color.Black,
+                    // [CAMBIO] icono blanco cuando el ítem está seleccionado (contraste sobre indicador negro)
+                    selectedIconColor = Color.White,
+                    // [CAMBIO] icono negro absoluto cuando el ítem NO está seleccionado
+                    unselectedIconColor = Color.Black,
+                    // [CAMBIO] etiqueta de texto siempre negra (seleccionado y no seleccionado)
+                    selectedTextColor = Color.Black,
+                    unselectedTextColor = Color.Black,
                 ),
             )
         }
