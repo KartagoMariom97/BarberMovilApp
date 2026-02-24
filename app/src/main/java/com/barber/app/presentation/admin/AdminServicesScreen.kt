@@ -190,11 +190,14 @@ private fun ServiceAdminCard(
             if (service.description.isNotBlank()) {
                 Text(service.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("${service.estimatedMinutes} min", style = MaterialTheme.typography.bodySmall)
-                Text("S/ ${service.price}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            }
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            Text("${service.estimatedMinutes} min", style = MaterialTheme.typography.bodySmall)
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text("S/ ${service.price}", style = MaterialTheme.typography.bodySmall, color = Color.Black)
+            
         }
     }
 }

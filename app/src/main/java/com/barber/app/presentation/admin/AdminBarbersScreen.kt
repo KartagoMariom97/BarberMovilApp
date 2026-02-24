@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barber.app.domain.model.AdminBarber
@@ -151,7 +152,7 @@ private fun BarberAdminCard(
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -171,12 +172,18 @@ private fun BarberAdminCard(
             if (barber.email.isNotBlank()) {
                 Text(barber.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+
             if (barber.telefono.isNotBlank()) {
                 Text(barber.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
                 if (barber.active) "Activo" else "Inactivo",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp),
                 color = if (barber.active) Color(0xFF4CAF50) else Color(0xFFE53935),
             )
         }
@@ -271,10 +278,10 @@ private fun CreateBarberDialog(
                     // DNI — Máx. 10 dígitos
                     OutlinedTextField(
                         value = dni,
-                        onValueChange = { if (it.length <= 10) dni = it },
+                        onValueChange = { if (it.length <= 8) dni = it },
                         label = { Text("DNI*") },
                         modifier = Modifier.fillMaxWidth(),
-                        supportingText = { Text("Máx. 10 dígitos") },
+                        supportingText = { Text("Máx. 8 dígitos") },
                     )
                 }
                 item {
@@ -334,7 +341,7 @@ private fun CreateBarberDialog(
                         onValueChange = { if (it.length <= 15) telefono = it },
                         label = { Text("Teléfono") },
                         modifier = Modifier.fillMaxWidth(),
-                        supportingText = { Text("Máx. 15 dígitos") },
+                        supportingText = { Text("Máx. 9 dígitos") },
                     )
                 }
                 item {
