@@ -6,6 +6,7 @@ import com.barber.app.core.network.TokenHolder
 import com.barber.app.data.remote.api.AuthApi
 import com.barber.app.data.remote.api.ClientApi
 import com.barber.app.data.remote.api.UserApi
+import com.barber.app.data.remote.dto.ChangePasswordRequest
 import com.barber.app.data.remote.dto.CreateClientUserRequest
 import com.barber.app.data.remote.dto.LoginRequest
 import com.barber.app.data.remote.dto.UpdateUserRequest
@@ -167,6 +168,23 @@ class AuthRepositoryImpl @Inject constructor(
             Resource.Error("Sin conexión a internet.")
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Error al actualizar el perfil")
+        }
+    }
+
+    override suspend fun changePassword(userId: Long, newPassword: String): Resource<Unit> {
+        return try {
+            userApi.changePassword(userId, ChangePasswordRequest(newPassword))
+            Resource.Success(Unit)
+        } catch (e: HttpException) {
+            val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+            val msg  = try { com.google.gson.JsonParser.parseString(body).asJsonObject.get("message")?.asString } catch (_: Exception) { null }
+            Resource.Error(msg ?: "Error del servidor (${e.code()})")
+        } catch (e: SocketTimeoutException) {
+            Resource.Error("Tiempo de espera agotado.")
+        } catch (e: UnknownHostException) {
+            Resource.Error("Sin conexión a internet.")
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al cambiar la contraseña")
         }
     }
 }

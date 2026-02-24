@@ -1,6 +1,6 @@
 package com.barber.app.core.network
 
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,8 +12,12 @@ class TokenHolder @Inject constructor() {
     @Volatile
     var refreshToken: String? = null
 
-    /** Emite un evento cuando el token expira (401) — la UI observa esto para redirigir al login */
-    val sessionExpiredFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
+    /**
+     * true cuando el JWT expira (401).
+     * StateFlow garantiza que el evento no se pierde aunque la UI aún no esté suscrita.
+     * Resetear a false en MainActivity tras mostrar el diálogo.
+     */
+    val sessionExpired = MutableStateFlow(false)
 
     fun clear() {
         accessToken = null

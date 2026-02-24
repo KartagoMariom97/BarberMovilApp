@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.barber.app.presentation.components.LoadingIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,12 +67,25 @@ fun AdminProfileScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    var showSaveSuccessDialog       by remember { mutableStateOf(false) }
+    var showPasswordSuccessDialog   by remember { mutableStateOf(false) }
+
     LaunchedEffect(state.isLoggedOut) {
         if (state.isLoggedOut) onLogout()
     }
 
     LaunchedEffect(state.saveSuccess) {
-        if (state.saveSuccess) viewModel.clearSaveSuccess()
+        if (state.saveSuccess) {
+            showSaveSuccessDialog = true
+            viewModel.clearSaveSuccess()
+        }
+    }
+
+    LaunchedEffect(state.changePasswordSuccess) {
+        if (state.changePasswordSuccess) {
+            showPasswordSuccessDialog = true
+            viewModel.clearChangePasswordSuccess()
+        }
     }
 
     Scaffold(
@@ -185,6 +200,22 @@ fun AdminProfileScreen(
                             Icon(Icons.Default.Badge, contentDescription = null, modifier = Modifier.size(20.dp))
                         },
                     )
+                    ListItem(
+                        headlineContent = {
+                            Column {
+                                Text("Contraseña", style = MaterialTheme.typography.labelSmall)
+                                Text("●●●●●●●●", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        },
+                        leadingContent = {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
+                        },
+                        trailingContent = {
+                            IconButton(onClick = { viewModel.showChangePasswordDialog() }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Cambiar contraseña", modifier = Modifier.size(18.dp))
+                            }
+                        },
+                    )
                 }
             }
 
@@ -217,6 +248,117 @@ fun AdminProfileScreen(
             },
         )
     }
+
+    if (state.isSaving || state.isChangingPassword) LoadingIndicator()
+
+    // Dialog de cambio de contraseña
+    if (state.showChangePasswordDialog) {
+        ChangePasswordAdminDialog(
+            isLoading = state.isChangingPassword,
+            error     = state.changePasswordError,
+            onDismiss = { viewModel.dismissChangePasswordDialog() },
+            onSave    = { newPassword -> viewModel.changePassword(newPassword) },
+        )
+    }
+
+    // Dialog de éxito al guardar perfil
+    if (showSaveSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveSuccessDialog = false },
+            containerColor   = Color.White,
+            title = { Text("Perfil actualizado", color = Color.Black) },
+            text  = { Text("Los datos del perfil se guardaron correctamente.", color = Color.Black) },
+            confirmButton = {
+                TextButton(onClick = { showSaveSuccessDialog = false }) {
+                    Text("Aceptar", color = Color.Black)
+                }
+            },
+        )
+    }
+
+    // Dialog de éxito al cambiar contraseña
+    if (showPasswordSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasswordSuccessDialog = false },
+            containerColor   = Color.White,
+            title = { Text("Contraseña actualizada", color = Color.Black) },
+            text  = { Text("Tu contraseña se cambió exitosamente.", color = Color.Black) },
+            confirmButton = {
+                TextButton(onClick = { showPasswordSuccessDialog = false }) {
+                    Text("Aceptar", color = Color.Black)
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun ChangePasswordAdminDialog(
+    isLoading: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    var newPassword     by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var newVisible      by remember { mutableStateOf(false) }
+    var confirmVisible  by remember { mutableStateOf(false) }
+
+    val mismatch = newPassword.isNotBlank() && confirmPassword.isNotBlank() && newPassword != confirmPassword
+    val canSave  = newPassword.isNotBlank() && confirmPassword.isNotBlank() && !mismatch && !isLoading
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        containerColor   = Color.White,
+        title = { Text("Cambiar contraseña", color = Color.Black) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { if (!it.contains('\n') && it.length <= 50) newPassword = it },
+                    label = { Text("Nueva contraseña") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (newVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                    trailingIcon = {
+                        IconButton(onClick = { newVisible = !newVisible }) {
+                            Icon(if (newVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                        }
+                    },
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { if (!it.contains('\n') && it.length <= 50) confirmPassword = it },
+                    label = { Text("Confirmar contraseña") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    isError = mismatch,
+                    visualTransformation = if (confirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                    supportingText = if (mismatch) { { Text("Las contraseñas no coinciden", color = Color.Red) } } else null,
+                    trailingIcon = {
+                        IconButton(onClick = { confirmVisible = !confirmVisible }) {
+                            Icon(if (confirmVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                        }
+                    },
+                )
+                if (error != null) Text(error, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).size(24.dp))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(newPassword) }, enabled = canSave) {
+                Text("Guardar", color = if (canSave) Color.Black else Color.Gray)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { if (!isLoading) onDismiss() }) { Text("Cancelar", color = Color.Black) }
+        },
+    )
 }
 
 @Composable

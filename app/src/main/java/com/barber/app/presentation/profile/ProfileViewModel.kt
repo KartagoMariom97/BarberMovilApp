@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.barber.app.core.common.Resource
 import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.domain.model.ClientProfile
+import com.barber.app.domain.repository.AuthRepository
 import com.barber.app.domain.usecase.GetProfileUseCase
 import com.barber.app.domain.usecase.LogoutUseCase
 import com.barber.app.domain.usecase.UpdateProfileUseCase
@@ -24,6 +25,9 @@ data class ProfileState(
     val isUpdating: Boolean = false,
     val updateError: String? = null,
     val updateSuccess: Boolean = false,
+    val isChangingPassword: Boolean = false,
+    val changePasswordError: String? = null,
+    val changePasswordSuccess: Boolean = false,
 )
 
 @HiltViewModel
@@ -32,6 +36,7 @@ class ProfileViewModel @Inject constructor(
     private val updateProfileUseCase: UpdateProfileUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileState())
@@ -113,6 +118,27 @@ class ProfileViewModel @Inject constructor(
     fun clearUpdateSuccess() {
         _state.value = _state.value.copy(updateSuccess = false)
     }
+
+    fun changePassword(newPassword: String) {
+        viewModelScope.launch {
+            val prefs = userPreferencesRepository.userPreferences.first()
+            _state.value = _state.value.copy(isChangingPassword = true, changePasswordError = null)
+            when (val result = authRepository.changePassword(prefs.userId, newPassword)) {
+                is Resource.Success -> _state.value = _state.value.copy(
+                    isChangingPassword = false,
+                    changePasswordSuccess = true,
+                )
+                is Resource.Error -> _state.value = _state.value.copy(
+                    isChangingPassword = false,
+                    changePasswordError = result.message,
+                )
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun clearChangePasswordSuccess() { _state.value = _state.value.copy(changePasswordSuccess = false) }
+    fun clearChangePasswordError()   { _state.value = _state.value.copy(changePasswordError = null) }
 
     fun logout() {
         viewModelScope.launch {

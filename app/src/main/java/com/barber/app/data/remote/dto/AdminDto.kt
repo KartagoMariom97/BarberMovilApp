@@ -162,3 +162,10 @@ data class AdminBookingResponse(
 data class AdminChangeStatusRequest(
     @SerializedName("status") val status: String,
 )
+
+data class AdminUpdateBookingRequest(
+    @SerializedName("barberId")     val barberId: Long,
+    @SerializedName("fechaReserva") val fechaReserva: String,
+    @SerializedName("startTime")    val startTime: String,
+    @SerializedName("serviceIds")   val serviceIds: List<Long>,
+)

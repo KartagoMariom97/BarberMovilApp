@@ -3,6 +3,7 @@ package com.barber.app.data.repository
 import com.barber.app.core.common.Resource
 import com.barber.app.data.remote.api.AdminBookingApi
 import com.barber.app.data.remote.dto.AdminChangeStatusRequest
+import com.barber.app.data.remote.dto.AdminUpdateBookingRequest
 import com.barber.app.data.remote.dto.CreateBookingRequest
 import com.barber.app.domain.model.AdminBooking
 import com.barber.app.domain.repository.AdminBookingRepository
@@ -76,6 +77,29 @@ class AdminBookingRepositoryImpl @Inject constructor(
             Resource.Success(Unit)
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al crear la reserva"))
+        }
+    }
+
+    override suspend fun updateBooking(
+        id: Long,
+        barberId: Long,
+        fechaReserva: String,
+        startTime: String,
+        serviceIds: List<Long>,
+    ): Resource<AdminBooking> {
+        return try {
+            val response = api.updateBooking(
+                id,
+                AdminUpdateBookingRequest(
+                    barberId = barberId,
+                    fechaReserva = fechaReserva,
+                    startTime = startTime,
+                    serviceIds = serviceIds,
+                ),
+            )
+            Resource.Success(response.toDomain())
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al editar la reserva"))
         }
     }
 }

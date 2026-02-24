@@ -27,4 +27,7 @@ interface AuthRepository {
         email: String,
         password: String?,
     ): Resource<Unit>
+
+    /** Cambia la contraseña del usuario vía PATCH /users/{id}/password */
+    suspend fun changePassword(userId: Long, newPassword: String): Resource<Unit>
 }

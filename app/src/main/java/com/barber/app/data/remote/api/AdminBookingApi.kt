@@ -2,6 +2,7 @@ package com.barber.app.data.remote.api
 
 import com.barber.app.data.remote.dto.AdminBookingResponse
 import com.barber.app.data.remote.dto.AdminChangeStatusRequest
+import com.barber.app.data.remote.dto.AdminUpdateBookingRequest
 import com.barber.app.data.remote.dto.BookingResponse
 import com.barber.app.data.remote.dto.CreateBookingRequest
 import retrofit2.http.Body
@@ -31,5 +32,11 @@ interface AdminBookingApi {
     suspend fun changeStatus(
         @Path("id") id: Long,
         @Body request: AdminChangeStatusRequest,
+    ): AdminBookingResponse
+
+    @PUT("admin/bookings/{id}")
+    suspend fun updateBooking(
+        @Path("id") id: Long,
+        @Body request: AdminUpdateBookingRequest,
     ): AdminBookingResponse
 }

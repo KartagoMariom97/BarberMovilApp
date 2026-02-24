@@ -9,4 +9,6 @@ interface AdminBookingRepository {
     suspend fun changeStatus(id: Long, status: String): Resource<AdminBooking>
     /** Crea una reserva nueva vía POST /bookings */
     suspend fun createBooking(clientId: Long, barberId: Long, fechaReserva: String, startTime: String, serviceIds: List<Long>): Resource<Unit>
+    /** Edita una reserva existente (solo PENDING o CONFIRMED) vía PUT /admin/bookings/{id} */
+    suspend fun updateBooking(id: Long, barberId: Long, fechaReserva: String, startTime: String, serviceIds: List<Long>): Resource<AdminBooking>
 }

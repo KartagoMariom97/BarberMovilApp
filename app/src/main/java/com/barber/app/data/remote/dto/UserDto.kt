@@ -34,6 +34,10 @@ data class UpdateUserRequest(
     @SerializedName("telefono") val telefono: String? = null,
 )
 
+data class ChangePasswordRequest(
+    @SerializedName("newPassword") val newPassword: String,
+)
+
 data class CreateUserRequest(
     @SerializedName("nombres") val nombres: String,
     @SerializedName("fechaNacimiento") val fechaNacimiento: String,

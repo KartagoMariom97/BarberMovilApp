@@ -26,6 +26,11 @@ data class AdminProfileUiState(
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val saveSuccess: Boolean = false,
+    // change password
+    val showChangePasswordDialog: Boolean = false,
+    val isChangingPassword: Boolean = false,
+    val changePasswordError: String? = null,
+    val changePasswordSuccess: Boolean = false,
 )
 
 @HiltViewModel
@@ -60,6 +65,34 @@ class AdminProfileViewModel @Inject constructor(
     fun dismissEditDialog() { _state.update { it.copy(showEditDialog = false, saveError = null) } }
     fun clearSaveError()    { _state.update { it.copy(saveError = null) } }
     fun clearSaveSuccess()  { _state.update { it.copy(saveSuccess = false) } }
+
+    fun showChangePasswordDialog()    { _state.update { it.copy(showChangePasswordDialog = true, changePasswordError = null) } }
+    fun dismissChangePasswordDialog() { _state.update { it.copy(showChangePasswordDialog = false, changePasswordError = null) } }
+    fun clearChangePasswordSuccess()  { _state.update { it.copy(changePasswordSuccess = false) } }
+
+    fun changePassword(newPassword: String) {
+        val userId = _state.value.userId
+        if (userId <= 0L) {
+            _state.update { it.copy(changePasswordError = "No se pudo obtener el ID de usuario.") }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(isChangingPassword = true, changePasswordError = null) }
+            when (val result = authRepository.changePassword(userId, newPassword)) {
+                is Resource.Success -> _state.update {
+                    it.copy(
+                        isChangingPassword = false,
+                        showChangePasswordDialog = false,
+                        changePasswordSuccess = true,
+                    )
+                }
+                is Resource.Error -> _state.update {
+                    it.copy(isChangingPassword = false, changePasswordError = result.message)
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
 
     fun updateProfile(nombres: String, email: String, password: String?) {
         val userId = _state.value.userId

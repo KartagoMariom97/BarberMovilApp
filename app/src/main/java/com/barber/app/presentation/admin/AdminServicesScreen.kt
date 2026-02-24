@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barber.app.domain.model.Service
 import com.barber.app.presentation.components.ErrorOverlay
+import com.barber.app.presentation.components.LoadingIndicator
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,8 +80,8 @@ fun AdminServicesScreen(
         },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (state.isLoading && state.services.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            if (state.isLoading) {
+                LoadingIndicator()
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),

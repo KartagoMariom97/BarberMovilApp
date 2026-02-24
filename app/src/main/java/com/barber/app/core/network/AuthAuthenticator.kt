@@ -14,14 +14,13 @@ class AuthAuthenticator @Inject constructor(
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: Response): Request? {
-        // If we already tried and failed, don't retry
         if (response.request.header("Authorization") != null) {
             runBlocking {
                 tokenHolder.clear()
                 userPreferencesRepository.clearSession()
-                // Notifica a la UI que la sesión expiró para redirigir al login
-                tokenHolder.sessionExpiredFlow.emit(Unit)
             }
+            // MutableStateFlow.value es thread-safe; no necesita coroutine ni runBlocking
+            tokenHolder.sessionExpired.value = true
             return null
         }
         return null

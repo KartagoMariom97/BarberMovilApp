@@ -16,14 +16,20 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +69,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 
 import androidx.compose.ui.text.style.TextAlign
@@ -87,6 +94,8 @@ fun ProfileScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showPasswordSuccessDialog by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(state.isLoggedOut) {
@@ -107,6 +116,44 @@ fun ProfileScreen(
             snackbarHostState.showSnackbar(error)
             viewModel.clearUpdateError()
         }
+    }
+
+    LaunchedEffect(state.changePasswordSuccess) {
+        if (state.changePasswordSuccess) {
+            showChangePasswordDialog = false
+            showPasswordSuccessDialog = true
+            viewModel.clearChangePasswordSuccess()
+        }
+    }
+
+    LaunchedEffect(state.changePasswordError) {
+        val error = state.changePasswordError
+        if (error != null) {
+            snackbarHostState.showSnackbar(error)
+            viewModel.clearChangePasswordError()
+        }
+    }
+
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            isLoading = state.isChangingPassword,
+            onDismiss = { showChangePasswordDialog = false },
+            onSave    = { newPassword -> viewModel.changePassword(newPassword) },
+        )
+    }
+
+    if (showPasswordSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasswordSuccessDialog = false },
+            containerColor   = Color.White,
+            title = { Text("Contraseña actualizada", color = Color.Black) },
+            text  = { Text("Tu contraseña se cambió exitosamente.", color = Color.Black) },
+            confirmButton = {
+                TextButton(onClick = { showPasswordSuccessDialog = false }) {
+                    Text("Aceptar", color = Color.Black)
+                }
+            },
+        )
     }
 
     if (showEditDialog) {
@@ -293,7 +340,7 @@ fun ProfileScreen(
                                             .height(45.dp) // ← forzamos altura fija
                     )
                     ListItem(
-                        headlineContent = { 
+                        headlineContent = {
                             Column {
                                 Text(
                                     "DNI",
@@ -306,13 +353,36 @@ fun ProfileScreen(
                             }
                         },
                         leadingContent = {
-                            Icon(Icons.Default.Badge, 
+                            Icon(Icons.Default.Badge,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp))
                         },
                             modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(50.dp) // ← forzamos altura fija
+                                            .height(50.dp)
+                    )
+                    ListItem(
+                        headlineContent = {
+                            Column {
+                                Text(
+                                    "Contraseña",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                                Text(
+                                    "●●●●●●●●",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        },
+                        leadingContent = {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
+                        },
+                        trailingContent = {
+                            IconButton(onClick = { showChangePasswordDialog = true }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Cambiar contraseña", modifier = Modifier.size(18.dp))
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
                     )
                 }
             }
@@ -375,4 +445,71 @@ fun ProfileScreen(
             LoadingIndicator()
         }
     }
+}
+
+@Composable
+private fun ChangePasswordDialog(
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    var newPassword     by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var newVisible      by remember { mutableStateOf(false) }
+    var confirmVisible  by remember { mutableStateOf(false) }
+
+    val mismatch = newPassword.isNotBlank() && confirmPassword.isNotBlank() && newPassword != confirmPassword
+    val canSave  = newPassword.isNotBlank() && confirmPassword.isNotBlank() && !mismatch && !isLoading
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        containerColor   = Color.White,
+        title = { Text("Cambiar contraseña", color = Color.Black) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { if (!it.contains('\n') && it.length <= 50) newPassword = it },
+                    label = { Text("Nueva contraseña") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (newVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                    trailingIcon = {
+                        IconButton(onClick = { newVisible = !newVisible }) {
+                            Icon(if (newVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                        }
+                    },
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { if (!it.contains('\n') && it.length <= 50) confirmPassword = it },
+                    label = { Text("Confirmar contraseña") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    isError = mismatch,
+                    visualTransformation = if (confirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                    supportingText = if (mismatch) { { Text("Las contraseñas no coinciden", color = Color.Red) } } else null,
+                    trailingIcon = {
+                        IconButton(onClick = { confirmVisible = !confirmVisible }) {
+                            Icon(if (confirmVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                        }
+                    },
+                )
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).size(24.dp))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(newPassword) }, enabled = canSave) {
+                Text("Guardar", color = if (canSave) Color.Black else Color.Gray)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { if (!isLoading) onDismiss() }) { Text("Cancelar", color = Color.Black) }
+        },
+    )
 }

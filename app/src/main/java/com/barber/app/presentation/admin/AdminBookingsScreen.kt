@@ -17,12 +17,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -30,6 +31,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,15 +64,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barber.app.domain.model.AdminBarber
@@ -77,6 +83,7 @@ import com.barber.app.domain.model.AdminBooking
 import com.barber.app.domain.model.AdminClient
 import com.barber.app.domain.model.Service
 import com.barber.app.presentation.components.ErrorOverlay
+import com.barber.app.presentation.components.LoadingIndicator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -104,6 +111,8 @@ fun AdminBookingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var changeStatusTarget by remember { mutableStateOf<Pair<AdminBooking, String>?>(null) }
+
+    if (state.isLoading) LoadingIndicator()
 
     LaunchedEffect(state.successMessage) {
         if (state.successMessage != null) viewModel.clearSuccess()
@@ -146,9 +155,7 @@ fun AdminBookingsScreen(
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                if (state.isLoading && state.bookings.isEmpty()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                } else if (state.bookings.isEmpty()) {
+                if (!state.isLoading && state.bookings.isEmpty()) {
                     Text(
                         "No hay reservas",
                         modifier = Modifier.align(Alignment.Center),
@@ -166,6 +173,9 @@ fun AdminBookingsScreen(
                                 onChangeStatus = { newStatus ->
                                     changeStatusTarget = booking to newStatus
                                 },
+                                onEdit = if (booking.status.uppercase() in listOf("PENDING", "CONFIRMED")) {
+                                    { viewModel.showEditDialog(booking) }
+                                } else null,
                             )
                         }
                         item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -205,6 +215,20 @@ fun AdminBookingsScreen(
         )
     }
 
+    /** Diálogo de edición de reserva: visible cuando showEditDialog == true */
+    if (state.showEditDialog && state.editingBooking != null) {
+        EditBookingDialog(
+            booking   = state.editingBooking!!,
+            barbers   = state.barbers,
+            services  = state.services,
+            onDismiss = { viewModel.dismissEditDialog() },
+            onUpdate  = { barberId, fecha, hora, serviceIds ->
+                val startTime = if (hora.length == 5) "$hora:00" else hora
+                viewModel.updateBooking(state.editingBooking!!.id, barberId, fecha, startTime, serviceIds)
+            },
+        )
+    }
+
     /** Diálogo de creación de reserva: visible cuando showCreateDialog == true */
     if (state.showCreateDialog) {
         CreateBookingDialog(
@@ -221,6 +245,260 @@ fun AdminBookingsScreen(
     }
 }
 
+/** Diálogo de edición de una reserva existente (solo PENDING/CONFIRMED) */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditBookingDialog(
+    booking: AdminBooking,
+    barbers: List<AdminBarber>,
+    services: List<Service>,
+    onDismiss: () -> Unit,
+    onUpdate: (barberId: Long, fecha: String, hora: String, serviceIds: List<Long>) -> Unit,
+) {
+    var selectedBarber by remember {
+        mutableStateOf(barbers.firstOrNull { it.codigoBarbero == booking.barberId })
+    }
+    var fecha by remember { mutableStateOf(booking.fechaReserva) }
+    var hora  by remember { mutableStateOf(booking.startTime.take(5)) }  // HH:mm
+    var selectedServiceIds by remember {
+        mutableStateOf(booking.services.map { it.serviceId }.toSet())
+    }
+
+    var barberExpanded  by remember { mutableStateOf(false) }
+    var serviceExpanded by remember { mutableStateOf(false) }
+    var showFechaPicker by remember { mutableStateOf(false) }
+    var showTimePicker  by remember { mutableStateOf(false) }
+    val fechaPickerState = rememberDatePickerState()
+    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+
+    val canUpdate = selectedBarber != null && fecha.isNotBlank() && hora.isNotBlank() && selectedServiceIds.isNotEmpty()
+
+    if (showFechaPicker) {
+        DatePickerDialog(
+            onDismissRequest = { showFechaPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    fechaPickerState.selectedDateMillis?.let { millis -> fecha = sdf.format(Date(millis)) }
+                    showFechaPicker = false
+                }) { Text("Aceptar", color = Color.Black) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFechaPicker = false }) { Text("Cancelar", color = Color.Black) }
+            },
+        ) {
+            DatePicker(
+                state = fechaPickerState,
+                showModeToggle = false,
+                title = null,
+                headline = null,
+                colors = DatePickerDefaults.colors(containerColor = Color.White),
+            )
+        }
+    }
+
+    if (showTimePicker) {
+        AdminTimePickerDialog(
+            onDismiss = { showTimePicker = false },
+            onConfirm = { hour24, minute ->
+                hora = "%02d:%02d".format(hour24, minute)
+                showTimePicker = false
+            },
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = Color.White,
+        title = { Text("Editar Reserva #${booking.id}", color = Color.Black) },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                // Cliente (solo lectura)
+                item {
+                    OutlinedTextField(
+                        value = booking.clientName,
+                        onValueChange = {},
+                        readOnly = true,
+                        enabled = false,
+                        label = { Text("Cliente") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = Color.Black,
+                            disabledBorderColor = Color.Gray,
+                            disabledLabelColor = Color.Gray,
+                        ),
+                    )
+                }
+
+                // Selector barbero
+                item {
+                    ExposedDropdownMenuBox(
+                        expanded = barberExpanded,
+                        onExpandedChange = { barberExpanded = !barberExpanded },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedBarber?.nombres ?: "Seleccionar barbero",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Barbero") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(barberExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            singleLine = true,
+                        )
+                        ExposedDropdownMenu(expanded = barberExpanded, onDismissRequest = { barberExpanded = false }) {
+                            barbers.filter { it.active }.forEach { b ->
+                                DropdownMenuItem(
+                                    text = { Text(b.nombres) },
+                                    onClick = { selectedBarber = b; barberExpanded = false },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Fecha
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showFechaPicker = true }) {
+                        OutlinedTextField(
+                            value = fecha,
+                            onValueChange = {},
+                            enabled = false,
+                            label = { Text("Fecha*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = Color.Black,
+                                disabledBorderColor = Color.Gray,
+                                disabledLabelColor = Color.Gray,
+                            ),
+                        )
+                    }
+                }
+
+                // Hora
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showTimePicker = true }) {
+                        OutlinedTextField(
+                            value = hora,
+                            onValueChange = {},
+                            enabled = false,
+                            label = { Text("Hora*") },
+                            placeholder = { Text("Toca para elegir hora") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = Color.Black,
+                                disabledBorderColor = Color.Gray,
+                                disabledLabelColor = Color.Gray,
+                                disabledPlaceholderColor = Color.Gray,
+                            ),
+                            trailingIcon = {
+                                Icon(Icons.Default.Schedule, contentDescription = "Elegir hora", tint = Color.Black)
+                            },
+                        )
+                    }
+                }
+
+                // Servicios
+                if (services.isNotEmpty()) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = when (selectedServiceIds.size) {
+                                        0    -> ""
+                                        1    -> services.find { it.id == selectedServiceIds.first() }?.name ?: "1 servicio"
+                                        else -> "${selectedServiceIds.size} servicios seleccionados"
+                                    },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Servicios*") },
+                                    trailingIcon = {
+                                        Icon(
+                                            if (serviceExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    enabled = false,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() },
+                                        ) { serviceExpanded = !serviceExpanded },
+                                )
+                            }
+                            if (serviceExpanded) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    elevation = CardDefaults.cardElevation(2.dp),
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 220.dp)
+                                            .verticalScroll(rememberScrollState()),
+                                    ) {
+                                        services.forEach { svc ->
+                                            val isChecked = selectedServiceIds.contains(svc.id)
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        selectedServiceIds = if (isChecked) selectedServiceIds - svc.id else selectedServiceIds + svc.id
+                                                    }
+                                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                Checkbox(checked = isChecked, onCheckedChange = null)
+                                                Text("${svc.name}  S/ ${"%.2f".format(svc.price)}", style = MaterialTheme.typography.bodyMedium)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (selectedServiceIds.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    services.filter { selectedServiceIds.contains(it.id) }.forEach { svc ->
+                                        ServiceChipRemovable(name = svc.name, onRemove = { selectedServiceIds = selectedServiceIds - svc.id })
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onUpdate(selectedBarber!!.codigoBarbero, fecha.trim(), hora.trim(), selectedServiceIds.toList())
+                },
+                enabled = canUpdate,
+            ) { Text("Actualizar", color = if (canUpdate) Color.Black else Color.Gray) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Black) }
+        },
+    )
+}
+
 /**
  * Diálogo de creación de reserva.
  * Selectores de cliente y barbero con ExposedDropdownMenu.
@@ -235,8 +513,6 @@ private fun CreateBookingDialog(
     onDismiss: () -> Unit,
     onCreate: (clientId: Long, barberId: Long, fecha: String, hora: String, serviceIds: List<Long>) -> Unit,
 ) {
-    val focusManager = LocalFocusManager.current
-
     var selectedClient   by remember { mutableStateOf<AdminClient?>(null) }
     var selectedBarber   by remember { mutableStateOf<AdminBarber?>(null) }
     var fecha            by remember { mutableStateOf("") }
@@ -247,6 +523,7 @@ private fun CreateBookingDialog(
     var barberExpanded   by remember { mutableStateOf(false) }
     var serviceExpanded  by remember { mutableStateOf(false) }
     var showFechaPicker  by remember { mutableStateOf(false) }
+    var showTimePicker   by remember { mutableStateOf(false) }
     val fechaPickerState = rememberDatePickerState()
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
 
@@ -277,6 +554,16 @@ private fun CreateBookingDialog(
                 colors = DatePickerDefaults.colors(containerColor = Color.White),
             )
         }
+    }
+
+    if (showTimePicker) {
+        AdminTimePickerDialog(
+            onDismiss = { showTimePicker = false },
+            onConfirm = { hour24, minute ->
+                hora = "%02d:%02d".format(hour24, minute)
+                showTimePicker = false
+            },
+        )
     }
 
     AlertDialog(
@@ -357,17 +644,28 @@ private fun CreateBookingDialog(
                     }
                 }
 
-                // Hora
+                // Hora — selector visual con ruedas de scroll (NumberPicker)
                 item {
-                    OutlinedTextField(
-                        value = hora,
-                        onValueChange = { if (!it.contains('\n')) hora = it },
-                        label = { Text("Hora (HH:mm)*") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    )
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showTimePicker = true }) {
+                        OutlinedTextField(
+                            value = hora,
+                            onValueChange = {},
+                            enabled = false,
+                            label = { Text("Hora*") },
+                            placeholder = { Text("Toca para elegir hora") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = Color.Black,
+                                disabledBorderColor = Color.Gray,
+                                disabledLabelColor = Color.Gray,
+                                disabledPlaceholderColor = Color.Gray,
+                            ),
+                            trailingIcon = {
+                                Icon(Icons.Default.Schedule, contentDescription = "Elegir hora", tint = Color.Black)
+                            },
+                        )
+                    }
                 }
 
                 // Servicios — dropdown in-place (mismo patrón que EditBookingDialog)
@@ -499,6 +797,7 @@ private fun CreateBookingDialog(
 private fun AdminBookingCard(
     booking: AdminBooking,
     onChangeStatus: (String) -> Unit,
+    onEdit: (() -> Unit)? = null,
 ) {
     val statusColor = when (booking.status.uppercase()) {
         "PENDING"     -> Color(0xFFFF9800)
@@ -602,12 +901,25 @@ private fun AdminBookingCard(
                 )
             }
 
-            // Botones de acción
+            // Botones de acción (estado + editar)
             val actions = nextStatusOptions[booking.status.uppercase()]
-            if (!actions.isNullOrEmpty()) {
+            val canEdit = booking.status.uppercase() in listOf("PENDING", "CONFIRMED")
+            if (!actions.isNullOrEmpty() || canEdit) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    actions.forEach { (status, label) ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (canEdit && onEdit != null) {
+                        Button(
+                            onClick = onEdit,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                            modifier = Modifier.height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Editar", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                        }
+                    }
+                    actions?.forEach { (status, label) ->
                         val btnColor = when (status) {
                             "CONFIRMED"   -> Color(0xFF4CAF50)
                             "IN_PROGRESS" -> Color(0xFF7B1FA2)
@@ -685,5 +997,203 @@ private fun ServiceChipRemovable(name: String, onRemove: () -> Unit) {
             modifier = Modifier.size(12.dp),
             tint = Color.Black.copy(alpha = 0.5f),
         )
+    }
+}
+
+/** Dialog selector de hora con ruedas de scroll (hora 1-12, minuto 0-59, AM/PM) */
+@Composable
+private fun AdminTimePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (hour24: Int, minute: Int) -> Unit,
+) {
+    var selectedHour   by remember { mutableStateOf(8) }
+    var selectedMinute by remember { mutableStateOf(0) }
+    var isAm           by remember { mutableStateOf(true) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    "Selecciona la hora",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black,
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    // Rueda de horas (1-12)
+                    AdminScrollPickerColumn(
+                        items = (1..12).toList(),
+                        selectedItem = selectedHour,
+                        onItemSelected = { selectedHour = it },
+                        label = { "%02d".format(it) },
+                    )
+
+                    Text(
+                        ":",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+
+                    // Rueda de minutos (0-59)
+                    AdminScrollPickerColumn(
+                        items = (0..59).toList(),
+                        selectedItem = selectedMinute,
+                        onItemSelected = { selectedMinute = it },
+                        label = { "%02d".format(it) },
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Toggle AM / PM
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf(true, false).forEach { am ->
+                            val selected = isAm == am
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else Color.LightGray.copy(alpha = 0.3f),
+                                    )
+                                    .clickable { isAm = am }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = if (am) "AM" else "PM",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selected) Color.White else Color.DarkGray,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancelar", color = Color.Black)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val hour24 = when {
+                                isAm && selectedHour == 12  -> 0
+                                !isAm && selectedHour == 12 -> 12
+                                !isAm                       -> selectedHour + 12
+                                else                        -> selectedHour
+                            }
+                            onConfirm(hour24, selectedMinute)
+                        },
+                    ) { Text("Aceptar") }
+                }
+            }
+        }
+    }
+}
+
+/** Columna scrolleable con snap para seleccionar un número (horas o minutos) */
+@Composable
+private fun AdminScrollPickerColumn(
+    items: List<Int>,
+    selectedItem: Int,
+    onItemSelected: (Int) -> Unit,
+    label: (Int) -> String,
+) {
+    val listState      = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val itemHeight     = 44.dp
+    val visibleItems   = 3
+
+    LaunchedEffect(Unit) {
+        val index = items.indexOf(selectedItem).coerceAtLeast(0)
+        listState.scrollToItem(index)
+    }
+
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            val firstVisible = listState.firstVisibleItemIndex
+            val offset       = listState.firstVisibleItemScrollOffset
+            val targetIndex  = if (offset > itemHeight.value * 0.5f) firstVisible + 1 else firstVisible
+            val clampedIndex = targetIndex.coerceIn(0, items.size - 1)
+            onItemSelected(items[clampedIndex])
+            coroutineScope.launch { listState.animateScrollToItem(clampedIndex) }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(64.dp)
+            .height(itemHeight * visibleItems),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Resaltado del elemento central
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemHeight)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+        )
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemHeight * visibleItems),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(vertical = itemHeight),
+            flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
+        ) {
+            items(items.size) { index ->
+                val item       = items[index]
+                val isSelected = item == selectedItem
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(itemHeight)
+                        .clickable {
+                            onItemSelected(item)
+                            coroutineScope.launch { listState.animateScrollToItem(index) }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label(item),
+                        fontSize = if (isSelected) 24.sp else 18.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color.Black else Color.Gray,
+                    )
+                }
+            }
+        }
     }
 }

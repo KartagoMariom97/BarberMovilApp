@@ -78,17 +78,20 @@ class MainActivity : ComponentActivity() {
                         MainContent(
                             startDestination = start,
                             isSessionExpired = isSessionExpired,
-                            onSessionExpiredHandled = { isSessionExpired = false },
+                            onSessionExpiredHandled = {
+                                isSessionExpired = false
+                                tokenHolder.sessionExpired.value = false
+                            },
                         )
                     }
                 }
             }
         }
 
-        // Observa expiración de JWT (401) para redirigir al login
+        // Observa expiración de JWT (401) — StateFlow garantiza que no se pierde el evento
         lifecycleScope.launch {
-            tokenHolder.sessionExpiredFlow.collect {
-                isSessionExpired = true
+            tokenHolder.sessionExpired.collect { expired ->
+                if (expired) isSessionExpired = true
             }
         }
     }
@@ -243,10 +246,10 @@ private fun MainContent(
                     onSessionExpiredHandled()
                 },
                 containerColor = Color.White,
-                title = { Text("Sesión vencida", color = Color.Black, fontSize = 18.sp) },
+                title = { Text("Sesión expirada", color = Color.Black, fontSize = 18.sp) },
                 text = {
                     Text(
-                        "Su sesión ha vencido, inicie sesión nuevamente.",
+                        "Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente para continuar.",
                         color = Color.Black,
                         fontSize = 14.sp,
                     )

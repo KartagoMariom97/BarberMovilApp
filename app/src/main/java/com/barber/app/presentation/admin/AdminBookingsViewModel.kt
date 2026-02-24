@@ -28,7 +28,10 @@ data class AdminBookingsState(
     val successMessage: String? = null,
     /** Controla visibilidad del diálogo de creación */
     val showCreateDialog: Boolean = false,
-    /** Listas para los selectores del diálogo de creación */
+    /** Controla visibilidad del diálogo de edición */
+    val showEditDialog: Boolean = false,
+    val editingBooking: AdminBooking? = null,
+    /** Listas para los selectores del diálogo de creación/edición */
     val clients: List<AdminClient> = emptyList(),
     val barbers: List<AdminBarber> = emptyList(),
     val services: List<Service> = emptyList(),
@@ -101,6 +104,47 @@ class AdminBookingsViewModel @Inject constructor(
 
     /** Cierra el diálogo de creación */
     fun dismissCreateDialog() { _state.update { it.copy(showCreateDialog = false) } }
+
+    /** Abre el diálogo de edición para una reserva (solo PENDING/CONFIRMED) */
+    fun showEditDialog(booking: AdminBooking) {
+        _state.update { it.copy(showEditDialog = true, editingBooking = booking) }
+        // Carga barberos y servicios si no están cargados
+        viewModelScope.launch {
+            val bDeferred = async { if (_state.value.barbers.isEmpty()) barberRepo.getAllBarbers() else null }
+            val sDeferred = async { if (_state.value.services.isEmpty()) serviceRepo.getAllServices() else null }
+            val bRes = bDeferred.await()
+            val sRes = sDeferred.await()
+            _state.update { s ->
+                s.copy(
+                    barbers  = if (bRes is Resource.Success) bRes.data else s.barbers,
+                    services = if (sRes is Resource.Success) sRes.data else s.services,
+                )
+            }
+        }
+    }
+
+    /** Cierra el diálogo de edición */
+    fun dismissEditDialog() { _state.update { it.copy(showEditDialog = false, editingBooking = null) } }
+
+    /** Actualiza la reserva y refresca la lista */
+    fun updateBooking(id: Long, barberId: Long, fechaReserva: String, startTime: String, serviceIds: List<Long>) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null, showEditDialog = false, editingBooking = null) }
+            when (val result = repository.updateBooking(id, barberId, fechaReserva, startTime, serviceIds)) {
+                is Resource.Success -> {
+                    _state.update { state ->
+                        state.copy(
+                            bookings = state.bookings.map { if (it.id == id) result.data else it },
+                            isLoading = false,
+                            successMessage = "Reserva actualizada exitosamente",
+                        )
+                    }
+                }
+                is Resource.Error -> _state.update { it.copy(error = result.message, isLoading = false) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
 
     /** Crea la reserva y recarga la lista tras éxito */
     fun createBooking(clientId: Long, barberId: Long, fechaReserva: String, startTime: String, serviceIds: List<Long>) {
