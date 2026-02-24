@@ -43,10 +43,19 @@ class AdminBarbersViewModel @Inject constructor(
         }
     }
 
-    fun updateBarber(id: Long, nombres: String?, email: String?, telefono: String?) {
+    fun updateBarber(
+        id: Long,
+        nombres: String?,
+        email: String?,
+        telefono: String?,
+        password: String? = null,
+        dni: String? = null,
+        genero: String? = null,
+        fechaNacimiento: String? = null,
+    ) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            when (val result = repository.updateBarber(id, nombres, email, telefono)) {
+            when (val result = repository.updateBarber(id, nombres, email, telefono, password, dni, genero, fechaNacimiento)) {
                 is Resource.Success -> {
                     _state.update { state ->
                         state.copy(

@@ -16,6 +16,15 @@ interface AdminBarberRepository {
         telefono: String?,
         active: Boolean,
     ): Resource<AdminBarber>
-    suspend fun updateBarber(id: Long, nombres: String?, email: String?, telefono: String?): Resource<AdminBarber>
+    suspend fun updateBarber(
+        id: Long,
+        nombres: String? = null,
+        email: String? = null,
+        telefono: String? = null,
+        password: String? = null,
+        dni: String? = null,
+        genero: String? = null,
+        fechaNacimiento: String? = null,
+    ): Resource<AdminBarber>
     suspend fun toggleActive(id: Long): Resource<AdminBarber>
 }

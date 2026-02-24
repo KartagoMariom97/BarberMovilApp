@@ -2,6 +2,7 @@ package com.barber.app.presentation.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.barber.app.core.common.Resource
 import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,7 +19,13 @@ data class AdminProfileUiState(
     val email: String = "",
     val role: String = "",
     val entityId: Long = -1L,
+    val userId: Long = -1L,
     val isLoggedOut: Boolean = false,
+    // edit dialog
+    val showEditDialog: Boolean = false,
+    val isSaving: Boolean = false,
+    val saveError: String? = null,
+    val saveSuccess: Boolean = false,
 )
 
 @HiltViewModel
@@ -36,19 +44,53 @@ class AdminProfileViewModel @Inject constructor(
     private fun loadProfile() {
         viewModelScope.launch {
             val prefs = userPreferencesRepository.userPreferences.first()
-            _state.value = AdminProfileUiState(
-                nombres = prefs.nombres,
-                email = prefs.email,
-                role = prefs.role,
-                entityId = prefs.entityId,
-            )
+            _state.update {
+                it.copy(
+                    nombres = prefs.nombres,
+                    email = prefs.email,
+                    role = prefs.role,
+                    entityId = prefs.entityId,
+                    userId = prefs.userId,
+                )
+            }
+        }
+    }
+
+    fun showEditDialog()    { _state.update { it.copy(showEditDialog = true, saveError = null, saveSuccess = false) } }
+    fun dismissEditDialog() { _state.update { it.copy(showEditDialog = false, saveError = null) } }
+    fun clearSaveError()    { _state.update { it.copy(saveError = null) } }
+    fun clearSaveSuccess()  { _state.update { it.copy(saveSuccess = false) } }
+
+    fun updateProfile(nombres: String, email: String, password: String?) {
+        val userId = _state.value.userId
+        if (userId <= 0L) {
+            _state.update { it.copy(saveError = "No se pudo obtener el ID de usuario.") }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(isSaving = true, saveError = null) }
+            when (val result = authRepository.updateAdminProfile(userId, nombres, email, password)) {
+                is Resource.Success -> {
+                    _state.update {
+                        it.copy(
+                            nombres = nombres,
+                            email = email,
+                            isSaving = false,
+                            showEditDialog = false,
+                            saveSuccess = true,
+                        )
+                    }
+                }
+                is Resource.Error -> _state.update { it.copy(isSaving = false, saveError = result.message) }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()
-            _state.value = _state.value.copy(isLoggedOut = true)
+            _state.update { it.copy(isLoggedOut = true) }
         }
     }
 }

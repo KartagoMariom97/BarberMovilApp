@@ -19,4 +19,12 @@ interface AuthRepository {
     suspend fun adminLogin(email: String, password: String, role: String): Resource<Unit>
 
     suspend fun logout()
+
+    /** Actualiza nombre, email y contraseña del usuario administrador/barbero */
+    suspend fun updateAdminProfile(
+        userId: Long,
+        nombres: String,
+        email: String,
+        password: String?,
+    ): Resource<Unit>
 }

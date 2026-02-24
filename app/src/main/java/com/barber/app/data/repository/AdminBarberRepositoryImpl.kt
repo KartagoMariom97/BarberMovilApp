@@ -58,9 +58,24 @@ class AdminBarberRepositoryImpl @Inject constructor(
         nombres: String?,
         email: String?,
         telefono: String?,
+        password: String?,
+        dni: String?,
+        genero: String?,
+        fechaNacimiento: String?,
     ): Resource<AdminBarber> {
         return try {
-            val response = api.updateBarber(id, AdminUpdateBarberRequest(nombres = nombres, email = email, telefono = telefono))
+            val response = api.updateBarber(
+                id,
+                AdminUpdateBarberRequest(
+                    nombres = nombres,
+                    email = email,
+                    telefono = telefono,
+                    password = password,
+                    dni = dni,
+                    genero = genero,
+                    fechaNacimiento = fechaNacimiento,
+                ),
+            )
             Resource.Success(response.toDomain())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al actualizar el barbero"))

@@ -5,8 +5,10 @@ import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.core.network.TokenHolder
 import com.barber.app.data.remote.api.AuthApi
 import com.barber.app.data.remote.api.ClientApi
+import com.barber.app.data.remote.api.UserApi
 import com.barber.app.data.remote.dto.CreateClientUserRequest
 import com.barber.app.data.remote.dto.LoginRequest
+import com.barber.app.data.remote.dto.UpdateUserRequest
 import com.barber.app.domain.model.Client
 import com.barber.app.domain.repository.AuthRepository
 import retrofit2.HttpException
@@ -17,6 +19,7 @@ import javax.inject.Inject
 class AuthRepositoryImpl @Inject constructor(
     private val clientApi: ClientApi,
     private val authApi: AuthApi,
+    private val userApi: UserApi,
     private val tokenHolder: TokenHolder,
     private val userPreferencesRepository: UserPreferencesRepository,
 ) : AuthRepository {
@@ -142,5 +145,28 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun logout() {
         tokenHolder.clear()
         userPreferencesRepository.clearSession()
+    }
+
+    override suspend fun updateAdminProfile(
+        userId: Long,
+        nombres: String,
+        email: String,
+        password: String?,
+    ): Resource<Unit> {
+        return try {
+            userApi.updateUser(userId, UpdateUserRequest(nombres = nombres, email = email, password = password))
+            userPreferencesRepository.updateNombresEmail(nombres, email)
+            Resource.Success(Unit)
+        } catch (e: HttpException) {
+            val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+            val msg  = try { com.google.gson.JsonParser.parseString(body).asJsonObject.get("message")?.asString } catch (_: Exception) { null }
+            Resource.Error(msg ?: "Error del servidor (${e.code()})")
+        } catch (e: SocketTimeoutException) {
+            Resource.Error("Tiempo de espera agotado.")
+        } catch (e: UnknownHostException) {
+            Resource.Error("Sin conexión a internet.")
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al actualizar el perfil")
+        }
     }
 }

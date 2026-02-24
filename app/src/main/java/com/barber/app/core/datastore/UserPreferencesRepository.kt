@@ -90,6 +90,13 @@ class UserPreferencesRepository @Inject constructor(
         return dataStore.data.map { it[TOKEN] }.firstOrNull()?.takeIf { it.isNotEmpty() }
     }
 
+    suspend fun updateNombresEmail(nombres: String, email: String) {
+        dataStore.edit { prefs ->
+            prefs[NOMBRES] = nombres
+            prefs[EMAIL] = email
+        }
+    }
+
     suspend fun clearSession() {
         dataStore.edit { it.clear() }
     }

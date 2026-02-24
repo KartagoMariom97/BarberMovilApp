@@ -40,6 +40,15 @@ class LoginViewModel @Inject constructor(
     }
 
     fun login() {
+        val current = _state.value
+        if (current.email.isBlank()) {
+            _state.value = current.copy(error = "Ingresa tu correo electrónico.")
+            return
+        }
+        if (current.password.isBlank()) {
+            _state.value = current.copy(error = "Ingresa tu contraseña.")
+            return
+        }
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             when (val result = loginUseCase(_state.value.email, _state.value.password)) {

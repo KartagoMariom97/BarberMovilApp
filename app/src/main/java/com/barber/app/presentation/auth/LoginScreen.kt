@@ -122,7 +122,7 @@ fun LoginScreen(
             Button(
                 onClick = viewModel::login,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !state.isLoading,
+                enabled = !state.isLoading && state.email.isNotBlank() && state.password.isNotBlank(),
             ) {
                 Text(if (state.isLoading) "Ingresando..." else "Iniciar Sesión")
             }

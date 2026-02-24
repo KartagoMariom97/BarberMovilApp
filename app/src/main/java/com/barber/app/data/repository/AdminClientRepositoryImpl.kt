@@ -62,9 +62,24 @@ class AdminClientRepositoryImpl @Inject constructor(
         nombres: String?,
         email: String?,
         telefono: String?,
+        password: String?,
+        dni: String?,
+        genero: String?,
+        fechaNacimiento: String?,
     ): Resource<AdminClient> {
         return try {
-            val response = api.updateClient(id, AdminUpdateClientRequest(nombres = nombres, email = email, telefono = telefono))
+            val response = api.updateClient(
+                id,
+                AdminUpdateClientRequest(
+                    nombres = nombres,
+                    email = email,
+                    telefono = telefono,
+                    password = password,
+                    dni = dni,
+                    genero = genero,
+                    fechaNacimiento = fechaNacimiento,
+                ),
+            )
             Resource.Success(response.toDomain())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al actualizar el cliente"))

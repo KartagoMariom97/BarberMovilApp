@@ -27,6 +27,13 @@ data class UserResponse(
     )
 }
 
+data class UpdateUserRequest(
+    @SerializedName("nombres")  val nombres: String? = null,
+    @SerializedName("email")    val email: String? = null,
+    @SerializedName("password") val password: String? = null,
+    @SerializedName("telefono") val telefono: String? = null,
+)
+
 data class CreateUserRequest(
     @SerializedName("nombres") val nombres: String,
     @SerializedName("fechaNacimiento") val fechaNacimiento: String,

@@ -37,10 +37,14 @@ data class AdminBarberResponse(
 }
 
 data class AdminUpdateBarberRequest(
-    @SerializedName("nombres")  val nombres: String? = null,
-    @SerializedName("email")    val email: String? = null,
-    @SerializedName("telefono") val telefono: String? = null,
-    @SerializedName("active")   val active: Boolean? = null,
+    @SerializedName("nombres")          val nombres: String? = null,
+    @SerializedName("email")            val email: String? = null,
+    @SerializedName("telefono")         val telefono: String? = null,
+    @SerializedName("active")           val active: Boolean? = null,
+    @SerializedName("password")         val password: String? = null,
+    @SerializedName("dni")              val dni: String? = null,
+    @SerializedName("genero")           val genero: String? = null,
+    @SerializedName("fechaNacimiento")  val fechaNacimiento: String? = null,
 )
 
 // ─── Admin Client Create ──────────────────────────────────────────────────────
@@ -84,9 +88,13 @@ data class AdminClientResponse(
 }
 
 data class AdminUpdateClientRequest(
-    @SerializedName("nombres")  val nombres: String? = null,
-    @SerializedName("email")    val email: String? = null,
-    @SerializedName("telefono") val telefono: String? = null,
+    @SerializedName("nombres")          val nombres: String? = null,
+    @SerializedName("email")            val email: String? = null,
+    @SerializedName("telefono")         val telefono: String? = null,
+    @SerializedName("password")         val password: String? = null,
+    @SerializedName("dni")              val dni: String? = null,
+    @SerializedName("genero")           val genero: String? = null,
+    @SerializedName("fechaNacimiento")  val fechaNacimiento: String? = null,
 )
 
 // ─── Admin Service (reutiliza ServiceResponse existente) ─────────────────────
