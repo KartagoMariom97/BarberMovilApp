@@ -58,6 +58,39 @@ fun HomeScreen(
         viewModel.loadData()
     }
 
+    // Dialog: notifica al cliente que el admin creó una reserva para él
+    if (state.showNewBookingDialog && state.newAdminBookings.isNotEmpty()) {
+        val booking = state.newAdminBookings.first()
+        val statusLabel = when (booking.status.uppercase()) {
+            "PENDING"    -> "Pendiente"
+            "CONFIRMED"  -> "Confirmada"
+            "IN_PROGRESS"-> "En progreso"
+            "COMPLETED"  -> "Completada"
+            "CANCELLED"  -> "Cancelada"
+            else         -> booking.status
+        }
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissNewBookingDialog() },
+            containerColor = Color.White,
+            title = { Text("Nueva reserva del administrador", color = Color.Black) },
+            text = {
+                Text(
+                    "El administrador ha creado una reserva para ti.\n\n" +
+                    "Fecha: ${booking.fechaReserva}\n" +
+                    "Hora: ${booking.startTime}\n" +
+                    "Barbero: ${booking.barberName}\n" +
+                    "Estado: $statusLabel",
+                    color = Color.Black,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissNewBookingDialog() }) {
+                    Text("Aceptar", color = Color.Black)
+                }
+            },
+        )
+    }
+
     // Dialog: notifica al cliente que tiene reserva(s) confirmada(s)
     if (state.showConfirmedDialog) {
         AlertDialog(

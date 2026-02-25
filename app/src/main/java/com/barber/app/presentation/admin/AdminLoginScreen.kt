@@ -93,17 +93,28 @@ fun AdminLoginScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Rol:", style = MaterialTheme.typography.bodyMedium)
-                listOf("ADMIN", "BARBER").forEach { role ->
-                    FilterChip(
-                        selected = state.role == role,
-                        onClick = { viewModel.onRoleChange(role) },
-                        label = { Text(role) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color.Black,
-                            selectedLabelColor = Color.White,
-                        ),
-                    )
-                }
+                // Chip ADMIN — único rol habilitado por ahora
+                FilterChip(
+                    selected = state.role == "ADMIN",
+                    onClick = { viewModel.onRoleChange("ADMIN") },
+                    label = { Text("ADMIN") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color.Black,
+                        selectedLabelColor = Color.White,
+                    ),
+                )
+                // Chip BARBER deshabilitado — descomentar cuando se requiera:
+                /*
+                FilterChip(
+                    selected = state.role == "BARBER",
+                    onClick = { viewModel.onRoleChange("BARBER") },
+                    label = { Text("BARBER") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color.Black,
+                        selectedLabelColor = Color.White,
+                    ),
+                )
+                */
             }
 
             Spacer(modifier = Modifier.height(20.dp))

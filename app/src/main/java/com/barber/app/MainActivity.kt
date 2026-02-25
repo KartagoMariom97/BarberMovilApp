@@ -66,6 +66,10 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val prefs = userPreferencesRepository.userPreferences.first()
+            // Restaurar token en memoria para que AuthInterceptor lo adjunte desde el primer request
+            if (prefs.token.isNotEmpty()) {
+                tokenHolder.accessToken = prefs.token
+            }
             startDestination = when {
                 prefs.isLoggedIn && prefs.role in listOf("ADMIN", "BARBER") -> Screen.AdminDashboard
                 prefs.isLoggedIn -> Screen.Home

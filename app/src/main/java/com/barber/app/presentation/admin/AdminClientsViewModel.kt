@@ -94,6 +94,21 @@ class AdminClientsViewModel @Inject constructor(
         }
     }
 
+    fun toggleClientStatus(id: Long, active: Boolean) {
+        viewModelScope.launch {
+            when (val result = repository.updateClientStatus(id, active)) {
+                is Resource.Success -> _state.update { state ->
+                    state.copy(
+                        clients = state.clients.map { if (it.codigoCliente == id) result.data else it },
+                        successMessage = if (active) "Cliente activado" else "Cliente desactivado",
+                    )
+                }
+                is Resource.Error   -> _state.update { it.copy(error = result.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
     fun clearError()   { _state.update { it.copy(error = null) } }
     fun clearSuccess() { _state.update { it.copy(successMessage = null) } }
 }

@@ -173,6 +173,8 @@ class BookingViewModel @Inject constructor(
                 serviceIds = s.selectedServices.toList(),
             )) {
                 is Resource.Success -> {
+                    // Marcar como vista para que HomeScreen no la muestre como "nueva del admin"
+                    userPreferencesRepository.markBookingsAsSeen(setOf(result.data.id))
                     _state.value = _state.value.copy(
                         isLoading = false,
                         bookingResult = result.data,

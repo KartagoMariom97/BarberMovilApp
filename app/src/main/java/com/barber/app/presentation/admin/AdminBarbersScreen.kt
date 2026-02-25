@@ -436,6 +436,7 @@ private fun CreateBarberDialog(
     var genero          by remember { mutableStateOf("") }
     var active          by remember { mutableStateOf(true) }
     var showFechaPicker by remember { mutableStateOf(false) }
+    var submitted       by remember { mutableStateOf(false) }
     val fechaPickerState = rememberDatePickerState()
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val generoOptions = listOf("M", "F", "Otro")
@@ -488,60 +489,89 @@ private fun CreateBarberDialog(
                         label = { Text("Nombres*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        isError = submitted && nombres.isBlank(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 100 caracteres") },
+                        supportingText = {
+                            if (submitted && nombres.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
+                            else Text("Máx. 100 caracteres")
+                        },
                     )
                 }
                 item {
                     // Fecha de nacimiento — selección mediante DatePickerDialog
-                    Box(modifier = Modifier.fillMaxWidth().clickable { showFechaPicker = true }) {
-                        OutlinedTextField(
-                            value = fechaNacimiento,
-                            onValueChange = {},
-                            enabled = false,
-                            label = { Text("Fecha Nacimiento*") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = Color.Black,
-                                disabledBorderColor = Color.Gray,
-                                disabledLabelColor = Color.Gray,
-                            ),
-                        )
+                    Column {
+                        Box(modifier = Modifier.fillMaxWidth().clickable { showFechaPicker = true }) {
+                            OutlinedTextField(
+                                value = fechaNacimiento,
+                                onValueChange = {},
+                                enabled = false,
+                                label = { Text("Fecha Nacimiento*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = Color.Black,
+                                    disabledBorderColor = if (submitted && fechaNacimiento.isBlank()) Color(0xFFE53935) else Color.Gray,
+                                    disabledLabelColor = if (submitted && fechaNacimiento.isBlank()) Color(0xFFE53935) else Color.Gray,
+                                ),
+                            )
+                        }
+                        if (submitted && fechaNacimiento.isBlank()) {
+                            Text(
+                                "Campo requerido",
+                                color = Color(0xFFE53935),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                            )
+                        }
                     }
                 }
                 item {
-                    // DNI — Máx. 10 dígitos
+                    // DNI — Máx. 8 dígitos
                     OutlinedTextField(
                         value = dni,
                         onValueChange = { if (!it.contains('\n') && it.length <= 8) dni = it },
                         label = { Text("DNI*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        isError = submitted && dni.isBlank(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 8 dígitos") },
+                        supportingText = {
+                            if (submitted && dni.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
+                            else Text("Máx. 8 dígitos")
+                        },
                     )
                 }
                 item {
                     // Selector de género
-                    ExposedDropdownMenuBox(
-                        expanded = generoExpanded,
-                        onExpandedChange = { generoExpanded = !generoExpanded },
-                    ) {
-                        OutlinedTextField(
-                            value = genero.ifBlank { "Seleccionar" },
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Género*") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(generoExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
-                            singleLine = true,
-                        )
-                        ExposedDropdownMenu(expanded = generoExpanded, onDismissRequest = { generoExpanded = false }) {
-                            generoOptions.forEach { g ->
-                                DropdownMenuItem(text = { Text(g) }, onClick = { genero = g; generoExpanded = false })
+                    Column {
+                        ExposedDropdownMenuBox(
+                            expanded = generoExpanded,
+                            onExpandedChange = { generoExpanded = !generoExpanded },
+                        ) {
+                            OutlinedTextField(
+                                value = genero.ifBlank { "Seleccionar" },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Género*") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(generoExpanded) },
+                                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                singleLine = true,
+                                isError = submitted && genero.isBlank(),
+                            )
+                            ExposedDropdownMenu(expanded = generoExpanded, onDismissRequest = { generoExpanded = false }) {
+                                generoOptions.forEach { g ->
+                                    DropdownMenuItem(text = { Text(g) }, onClick = { genero = g; generoExpanded = false })
+                                }
                             }
+                        }
+                        if (submitted && genero.isBlank()) {
+                            Text(
+                                "Campo requerido",
+                                color = Color(0xFFE53935),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                            )
                         }
                     }
                 }
@@ -553,9 +583,13 @@ private fun CreateBarberDialog(
                         label = { Text("Email*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        isError = submitted && email.isBlank(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 100 caracteres") },
+                        supportingText = {
+                            if (submitted && email.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
+                            else Text("Máx. 100 caracteres")
+                        },
                     )
                 }
                 item {
@@ -609,13 +643,15 @@ private fun CreateBarberDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onCreate(
-                        nombres.trim(), fechaNacimiento, dni.trim(), genero,
-                        email.trim(), password, telefono.takeIf { it.isNotBlank() }, active,
-                    )
+                    submitted = true
+                    if (canCreate) {
+                        onCreate(
+                            nombres.trim(), fechaNacimiento, dni.trim(), genero,
+                            email.trim(), password, telefono.takeIf { it.isNotBlank() }, active,
+                        )
+                    }
                 },
-                enabled = canCreate,
-            ) { Text("Crear", color = if (canCreate) Color.Black else Color.Gray) }
+            ) { Text("Crear", color = Color.Black) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Black) }

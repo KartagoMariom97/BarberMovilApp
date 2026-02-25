@@ -6,7 +6,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -27,6 +29,8 @@ class UserPreferencesRepository @Inject constructor(
         val TOKEN = stringPreferencesKey("token")
         val ROLE = stringPreferencesKey("role")
         val ENTITY_ID = longPreferencesKey("entity_id")
+        /** IDs de reservas ya vistas por el cliente — evita mostrar el dialog más de una vez */
+        val SEEN_BOOKING_IDS = stringSetPreferencesKey("seen_booking_ids")
     }
 
     val userPreferences: Flow<UserPreferences> = dataStore.data.map { prefs ->
@@ -94,6 +98,22 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { prefs ->
             prefs[NOMBRES] = nombres
             prefs[EMAIL] = email
+        }
+    }
+
+    /** Retorna el conjunto de IDs de reservas ya visualizadas por el cliente */
+    suspend fun getSeenBookingIds(): Set<Long> {
+        return dataStore.data.map { prefs ->
+            prefs[SEEN_BOOKING_IDS]?.mapNotNull { it.toLongOrNull() }?.toSet() ?: emptySet()
+        }.first()
+    }
+
+    /** Agrega los IDs indicados al conjunto de reservas ya vistas */
+    suspend fun markBookingsAsSeen(ids: Set<Long>) {
+        dataStore.edit { prefs ->
+            val current = prefs[SEEN_BOOKING_IDS]?.toMutableSet() ?: mutableSetOf()
+            current.addAll(ids.map { it.toString() })
+            prefs[SEEN_BOOKING_IDS] = current
         }
     }
 

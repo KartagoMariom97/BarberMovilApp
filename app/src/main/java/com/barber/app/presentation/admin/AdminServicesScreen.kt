@@ -57,9 +57,14 @@ fun AdminServicesScreen(
     var editingService by remember { mutableStateOf<Service?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var deletingServiceId by remember { mutableStateOf<Long?>(null) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var successDialogMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(state.successMessage) {
-        if (state.successMessage != null) viewModel.clearSuccess()
+        if (state.successMessage != null) {
+            successDialogMessage = state.successMessage!!
+            showSuccessDialog = true
+        }
     }
 
     Scaffold(
@@ -161,6 +166,20 @@ fun AdminServicesScreen(
             },
         )
     }
+
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false; viewModel.clearSuccess() },
+            containerColor = Color.White,
+            title = { Text("¡Operación exitosa!", color = Color.Black) },
+            text = { Text(successDialogMessage, color = Color.Black) },
+            confirmButton = {
+                TextButton(onClick = { showSuccessDialog = false; viewModel.clearSuccess() }) {
+                    Text("Aceptar", color = Color.Black)
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -217,6 +236,7 @@ private fun ServiceFormDialog(
     var description by remember { mutableStateOf(initialDescription) }
     var minutes     by remember { mutableStateOf(initialMinutes) }
     var price       by remember { mutableStateOf(initialPrice) }
+    var submitted   by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -224,16 +244,52 @@ private fun ServiceFormDialog(
         title = { Text(title, color = Color.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = minutes, onValueChange = { minutes = it }, label = { Text("Minutos estimados") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Precio (S/)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nombre*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = submitted && name.isBlank(),
+                    supportingText = if (submitted && name.isBlank()) {
+                        { Text("Campo requerido", color = Color(0xFFE53935)) }
+                    } else null,
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Descripción") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = minutes,
+                    onValueChange = { minutes = it },
+                    label = { Text("Minutos estimados*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = submitted && minutes.isBlank(),
+                    supportingText = if (submitted && minutes.isBlank()) {
+                        { Text("Campo requerido", color = Color(0xFFE53935)) }
+                    } else null,
+                )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Precio (S/)*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = submitted && price.isBlank(),
+                    supportingText = if (submitted && price.isBlank()) {
+                        { Text("Campo requerido", color = Color(0xFFE53935)) }
+                    } else null,
+                )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(name, description.takeIf { it.isNotBlank() }, minutes, price) },
-                enabled = name.isNotBlank() && minutes.isNotBlank() && price.isNotBlank(),
+                onClick = {
+                    submitted = true
+                    if (name.isNotBlank() && minutes.isNotBlank() && price.isNotBlank()) {
+                        onSave(name, description.takeIf { it.isNotBlank() }, minutes, price)
+                    }
+                },
             ) { Text("Guardar", color = Color.Black) }
         },
         dismissButton = {

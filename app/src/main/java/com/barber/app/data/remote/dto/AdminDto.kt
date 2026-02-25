@@ -71,6 +71,7 @@ data class AdminClientResponse(
     @SerializedName("genero")          val genero: String?,
     @SerializedName("email")           val email: String?,
     @SerializedName("telefono")        val telefono: String?,
+    @SerializedName("active")          val active: Boolean = true,
     @SerializedName("createdAt")       val createdAt: String?,
     @SerializedName("updatedAt")       val updatedAt: String?,
 ) {
@@ -83,9 +84,14 @@ data class AdminClientResponse(
         genero          = genero ?: "",
         email           = email ?: "",
         telefono        = telefono ?: "",
+        active          = active,
         createdAt       = createdAt ?: "",
     )
 }
+
+data class AdminUpdateClientStatusRequest(
+    @SerializedName("active") val active: Boolean,
+)
 
 data class AdminUpdateClientRequest(
     @SerializedName("nombres")          val nombres: String? = null,

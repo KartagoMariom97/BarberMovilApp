@@ -25,6 +25,7 @@ data class AdminClient(
     val genero: String,
     val email: String,
     val telefono: String,
+    val active: Boolean = true,
     val createdAt: String,
 )
 

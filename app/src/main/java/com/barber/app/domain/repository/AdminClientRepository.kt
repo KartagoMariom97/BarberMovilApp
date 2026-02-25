@@ -20,4 +20,7 @@ interface AdminClientRepository {
         nombres: String, fechaNacimiento: String, dni: String, genero: String,
         email: String?, telefono: String, password: String?,
     ): Resource<Unit>
+
+    /** Activa o desactiva un cliente vía PATCH /admin/clients/{id}/status */
+    suspend fun updateClientStatus(id: Long, active: Boolean): Resource<AdminClient>
 }

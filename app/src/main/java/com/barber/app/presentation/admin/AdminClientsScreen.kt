@@ -25,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.Switch
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -119,6 +120,7 @@ fun AdminClientsScreen(
                         ClientAdminCard(
                             client = client,
                             onEdit = { editingClient = client },
+                            onToggleStatus = { active -> viewModel.toggleClientStatus(client.codigoCliente, active) },
                         )
                     }
                     item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -182,31 +184,49 @@ fun AdminClientsScreen(
 private fun ClientAdminCard(
     client: AdminClient,
     onEdit: () -> Unit,
+    onToggleStatus: (Boolean) -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(client.nombres, style = MaterialTheme.typography.titleMedium)
-                if (client.email.isNotBlank()) {
-                    Text(client.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(client.nombres, style = MaterialTheme.typography.titleMedium)
+                    if (client.email.isNotBlank()) {
+                        Text(client.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (client.telefono.isNotBlank()) {
+                        Text(client.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (client.dni.isNotBlank()) {
+                        Text("DNI: ${client.dni}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-                if (client.telefono.isNotBlank()) {
-                    Text(client.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (client.dni.isNotBlank()) {
-                    Text("DNI: ${client.dni}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFFFC107))
                 }
             }
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFFFC107))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (client.active) "Activo" else "Inactivo",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (client.active) Color(0xFF388E3C) else Color(0xFFE53935),
+                )
+                Switch(
+                    checked = client.active,
+                    onCheckedChange = onToggleStatus,
+                )
             }
         }
     }
@@ -424,6 +444,7 @@ private fun CreateClientDialog(
     var generoExpanded  by remember { mutableStateOf(false) }
     var genero          by remember { mutableStateOf("") }
     var showFechaPicker by remember { mutableStateOf(false) }
+    var submitted       by remember { mutableStateOf(false) }
     val fechaPickerState = rememberDatePickerState()
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val generoOptions = listOf("M", "F", "Otro")
@@ -476,26 +497,40 @@ private fun CreateClientDialog(
                         label = { Text("Nombres*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        isError = submitted && nombres.isBlank(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 100 caracteres") },
+                        supportingText = {
+                            if (submitted && nombres.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
+                            else Text("Máx. 100 caracteres")
+                        },
                     )
                 }
                 item {
                     // Fecha de nacimiento — selección mediante DatePickerDialog
-                    Box(modifier = Modifier.fillMaxWidth().clickable { showFechaPicker = true }) {
-                        OutlinedTextField(
-                            value = fechaNacimiento,
-                            onValueChange = {},
-                            enabled = false,
-                            label = { Text("Fecha Nacimiento*") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = Color.Black,
-                                disabledBorderColor = Color.Gray,
-                                disabledLabelColor = Color.Gray,
-                            ),
-                        )
+                    Column {
+                        Box(modifier = Modifier.fillMaxWidth().clickable { showFechaPicker = true }) {
+                            OutlinedTextField(
+                                value = fechaNacimiento,
+                                onValueChange = {},
+                                enabled = false,
+                                label = { Text("Fecha Nacimiento*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = Color.Black,
+                                    disabledBorderColor = if (submitted && fechaNacimiento.isBlank()) Color(0xFFE53935) else Color.Gray,
+                                    disabledLabelColor = if (submitted && fechaNacimiento.isBlank()) Color(0xFFE53935) else Color.Gray,
+                                ),
+                            )
+                        }
+                        if (submitted && fechaNacimiento.isBlank()) {
+                            Text(
+                                "Campo requerido",
+                                color = Color(0xFFE53935),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                            )
+                        }
                     }
                 }
                 item {
@@ -506,30 +541,45 @@ private fun CreateClientDialog(
                         label = { Text("DNI*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        isError = submitted && dni.isBlank(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 10 dígitos") },
+                        supportingText = {
+                            if (submitted && dni.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
+                            else Text("Máx. 10 dígitos")
+                        },
                     )
                 }
                 item {
                     // Selector de género
-                    ExposedDropdownMenuBox(
-                        expanded = generoExpanded,
-                        onExpandedChange = { generoExpanded = !generoExpanded },
-                    ) {
-                        OutlinedTextField(
-                            value = genero.ifBlank { "Seleccionar" },
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Género*") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(generoExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
-                            singleLine = true,
-                        )
-                        ExposedDropdownMenu(expanded = generoExpanded, onDismissRequest = { generoExpanded = false }) {
-                            generoOptions.forEach { g ->
-                                DropdownMenuItem(text = { Text(g) }, onClick = { genero = g; generoExpanded = false })
+                    Column {
+                        ExposedDropdownMenuBox(
+                            expanded = generoExpanded,
+                            onExpandedChange = { generoExpanded = !generoExpanded },
+                        ) {
+                            OutlinedTextField(
+                                value = genero.ifBlank { "Seleccionar" },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Género*") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(generoExpanded) },
+                                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                singleLine = true,
+                                isError = submitted && genero.isBlank(),
+                            )
+                            ExposedDropdownMenu(expanded = generoExpanded, onDismissRequest = { generoExpanded = false }) {
+                                generoOptions.forEach { g ->
+                                    DropdownMenuItem(text = { Text(g) }, onClick = { genero = g; generoExpanded = false })
+                                }
                             }
+                        }
+                        if (submitted && genero.isBlank()) {
+                            Text(
+                                "Campo requerido",
+                                color = Color(0xFFE53935),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                            )
                         }
                     }
                 }
@@ -541,9 +591,13 @@ private fun CreateClientDialog(
                         label = { Text("Teléfono*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        isError = submitted && telefono.isBlank(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 15 dígitos") },
+                        supportingText = {
+                            if (submitted && telefono.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
+                            else Text("Máx. 15 dígitos")
+                        },
                     )
                 }
                 item {
@@ -583,14 +637,16 @@ private fun CreateClientDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onCreate(
-                        nombres.trim(), fechaNacimiento, dni.trim(), genero,
-                        email.takeIf { it.isNotBlank() }, telefono.trim(),
-                        password.takeIf { it.isNotBlank() },
-                    )
+                    submitted = true
+                    if (canCreate) {
+                        onCreate(
+                            nombres.trim(), fechaNacimiento, dni.trim(), genero,
+                            email.takeIf { it.isNotBlank() }, telefono.trim(),
+                            password.takeIf { it.isNotBlank() },
+                        )
+                    }
                 },
-                enabled = canCreate,
-            ) { Text("Crear", color = if (canCreate) Color.Black else Color.Gray) }
+            ) { Text("Crear", color = Color.Black) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Black) }

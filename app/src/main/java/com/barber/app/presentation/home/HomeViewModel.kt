@@ -23,6 +23,9 @@ data class HomeState(
     /** Cantidad de reservas confirmadas detectadas al cargar — activa el dialog de notificación */
     val confirmedCount: Int = 0,
     val showConfirmedDialog: Boolean = false,
+    /** Reservas nuevas no vistas (creadas por el admin) — activa el dialog de nueva reserva */
+    val newAdminBookings: List<Booking> = emptyList(),
+    val showNewBookingDialog: Boolean = false,
 )
 
 @HiltViewModel
@@ -50,6 +53,15 @@ class HomeViewModel @Inject constructor(
         _state.value = _state.value.copy(showConfirmedDialog = false)
     }
 
+    /** Cierra el dialog de nueva reserva del admin y marca esas reservas como vistas */
+    fun dismissNewBookingDialog() {
+        val ids = _state.value.newAdminBookings.map { it.id }.toSet()
+        _state.value = _state.value.copy(showNewBookingDialog = false, newAdminBookings = emptyList())
+        viewModelScope.launch {
+            userPreferencesRepository.markBookingsAsSeen(ids)
+        }
+    }
+
     fun loadData() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
@@ -66,11 +78,21 @@ class HomeViewModel @Inject constructor(
                         // Muestra el dialog de confirmación solo la primera vez que se detectan reservas confirmadas
                         val showDialog = confirmed.isNotEmpty() && !confirmedDialogShown
                         if (showDialog) confirmedDialogShown = true
+
+                        // Detectar reservas nuevas no vistas (creadas por el admin)
+                        val seenIds = userPreferencesRepository.getSeenBookingIds()
+                        val newBookings = result.data.filter {
+                            it.id !in seenIds &&
+                            it.status.uppercase() in listOf("PENDING", "CONFIRMED")
+                        }
+
                         _state.value = _state.value.copy(
                             upcomingBookings = upcoming,
                             isLoading = false,
                             confirmedCount = confirmed.size,
                             showConfirmedDialog = showDialog,
+                            newAdminBookings = newBookings,
+                            showNewBookingDialog = newBookings.isNotEmpty(),
                         )
                     }
                     is Resource.Error -> {

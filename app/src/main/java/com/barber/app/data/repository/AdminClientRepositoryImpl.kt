@@ -4,6 +4,7 @@ import com.barber.app.core.common.Resource
 import com.barber.app.data.remote.api.AdminClientApi
 import com.barber.app.data.remote.dto.AdminCreateClientRequest
 import com.barber.app.data.remote.dto.AdminUpdateClientRequest
+import com.barber.app.data.remote.dto.AdminUpdateClientStatusRequest
 import com.barber.app.domain.model.AdminClient
 import com.barber.app.domain.repository.AdminClientRepository
 import retrofit2.HttpException
@@ -83,6 +84,15 @@ class AdminClientRepositoryImpl @Inject constructor(
             Resource.Success(response.toDomain())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al actualizar el cliente"))
+        }
+    }
+
+    override suspend fun updateClientStatus(id: Long, active: Boolean): Resource<AdminClient> {
+        return try {
+            val response = api.updateClientStatus(id, AdminUpdateClientStatusRequest(active))
+            Resource.Success(response.toDomain())
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al actualizar el estado del cliente"))
         }
     }
 }
