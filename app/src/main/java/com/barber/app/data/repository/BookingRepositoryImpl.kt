@@ -1,6 +1,7 @@
 package com.barber.app.data.repository
 
 import com.barber.app.core.common.Resource
+import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.data.local.dao.BookingDao
 import com.barber.app.data.local.entity.BookingEntity
 import com.barber.app.data.local.entity.toDomain
@@ -11,6 +12,7 @@ import com.barber.app.domain.model.Booking
 import com.barber.app.domain.repository.BookingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
@@ -29,6 +31,7 @@ class BookingRepositoryImpl @Inject constructor(
     private val appointmentApi: AppointmentApi,
     private val clientApi: ClientApi,
     private val bookingDao: BookingDao,
+    private val userPreferencesRepository: UserPreferencesRepository // 👈 agregar
 ) : BookingRepository {
 
     override suspend fun createBooking(
@@ -51,6 +54,7 @@ class BookingRepositoryImpl @Inject constructor(
             // Write-through: persistir en Room tras éxito en red
             val entity = BookingEntity(
                 id = response.id,
+                clientId = clientId, // 🔥 IMPORTANTE
                 clientName = response.clientName ?: "",
                 barberName = response.barberName ?: "",
                 fechaReserva = response.fechaReserva ?: "",
@@ -84,7 +88,7 @@ class BookingRepositoryImpl @Inject constructor(
 
     override suspend fun getClientBookings(clientId: Long): Resource<List<Booking>> {
         // Cache-first: devuelve datos locales inmediatamente
-        val cachedEntities = bookingDao.getBookings()
+        val cachedEntities = bookingDao.getBookingsByClient(clientId)
         if (cachedEntities.isNotEmpty()) {
             val cachedBookings = cachedEntities.map { entity ->
                 val details = bookingDao.getServiceDetails(entity.id)
@@ -103,7 +107,7 @@ class BookingRepositoryImpl @Inject constructor(
                 try {
                     val detail = appointmentApi.getBookingById(summary.bookingId)
                     // Persistir detalle completo en Room
-                    bookingDao.upsertBookings(listOf(detail.toEntity()))
+                    bookingDao.upsertBookings(listOf(detail.toEntity(clientId)))
                     bookingDao.deleteServiceDetails(detail.id)
                     bookingDao.upsertServiceDetails(detail.serviceEntities())
                     detail.toDomain()
@@ -120,7 +124,8 @@ class BookingRepositoryImpl @Inject constructor(
     override suspend fun getBookingById(id: Long): Resource<Booking> {
         return try {
             val response = appointmentApi.getBookingById(id)
-            bookingDao.upsertBookings(listOf(response.toEntity()))
+            val clientId = userPreferencesRepository.userPreferences.first().clientId
+            bookingDao.upsertBookings(listOf(response.toEntity(clientId)))
             bookingDao.deleteServiceDetails(response.id)
             bookingDao.upsertServiceDetails(response.serviceEntities())
             Resource.Success(response.toDomain())
@@ -186,7 +191,7 @@ class BookingRepositoryImpl @Inject constructor(
             // Write-through: refrescar datos actualizados en Room
             try {
                 val updated = appointmentApi.getBookingById(bookingId)
-                bookingDao.upsertBookings(listOf(updated.toEntity()))
+                bookingDao.upsertBookings(listOf(updated.toEntity(clientId)))
                 bookingDao.deleteServiceDetails(bookingId)
                 bookingDao.upsertServiceDetails(updated.serviceEntities())
             } catch (_: Exception) { /* si falla el refresh, la caché se actualizará en el próximo sync */ }

@@ -32,6 +32,7 @@ class AuthRepositoryImpl @Inject constructor(
         genero: String,
         email: String,
         telefono: String,
+        password: String
     ): Resource<Client> {
         return try {
             val response = clientApi.createClientUser(
@@ -42,6 +43,7 @@ class AuthRepositoryImpl @Inject constructor(
                     genero = genero,
                     email = email,
                     telefono = telefono,
+                    password = password
                 )
             )
             val client = response.toDomain()

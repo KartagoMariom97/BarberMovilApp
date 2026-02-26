@@ -98,9 +98,6 @@ fun AdminProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.showEditDialog() }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar perfil", tint = Color(0xFFFFC107))
-                    }
                 },
             )
         },

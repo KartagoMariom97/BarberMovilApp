@@ -19,6 +19,31 @@ android {
         versionName = "1.0"
     }
 
+    // 🔥 CAMBIO 1 — Agregado flavorDimensions
+    flavorDimensions += "environment"
+
+    // 🔥 CAMBIO 2 — Agregado productFlavors
+    productFlavors {
+
+        create("local") {
+            dimension = "environment"
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"http://192.168.18.106:8080/api/v1/\""
+            )
+        }
+
+        create("prod") {
+            dimension = "environment"
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"https://barberapp-crff.onrender.com/api/v1/\""
+            )
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -41,6 +66,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true   // 🔥 AGREGA ESTA LÍNEA
     }
 }
 
@@ -60,6 +86,10 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     debugImplementation(libs.androidx.ui.tooling)
+
+    // 🔥🔥🔥 NUEVO — Pull To Refresh ESTABLE (RECOMENDADO EN PRODUCCIÓN)
+    // Evitamos usar el API experimental de Material3
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.34.0")
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

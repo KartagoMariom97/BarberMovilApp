@@ -25,9 +25,12 @@ import com.barber.app.presentation.components.ErrorMessage
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
 
+// 🔥 NUEVOS IMPORTS PARA PULL TO REFRESH
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 
 import androidx.compose.foundation.background
 import androidx.compose.ui.Alignment
@@ -42,47 +45,63 @@ fun AppointmentsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var selectedBooking by remember { mutableStateOf<Booking?>(null) }
+    // 🔥 CAMBIO 1 — Ahora SwipeRefresh escucha isRefreshing
+    val swipeRefreshState = rememberSwipeRefreshState(
+        isRefreshing = state.isRefreshing
+    )
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        viewModel.loadBookings()
+        viewModel.loadBookings(isRefresh = true)
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
         when {
             !state.isLoading && state.bookings.isEmpty() && state.error == null -> {
                 ErrorMessage(message = "No tienes citas registradas")
             }
             else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(state.bookings, key = { it.id }) { booking ->
-                        BookingCard(
-                            booking = booking,
-                            barbers = state.barbers,
-                            services = state.services,
-                            clientId = state.clientId,
-                            onUpdateBooking = { clientId, barberId, fecha, hora, serviceIds ->
-                                viewModel.updateBooking(
-                                    booking.id,
-                                    clientId,
-                                    barberId,
-                                    fecha,
-                                    hora,
-                                    serviceIds
+                SwipeRefresh(
+                    state = swipeRefreshState,
+                    onRefresh = {
+                        viewModel.loadBookings(isRefresh = true) // Se ejecuta cuando el usuario se desliza hacia abajo
+                    },
+                ){
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(state.bookings, key = { it.id }) { booking ->
+                            BookingCard(
+                                booking = booking,
+                                barbers = state.barbers,
+                                services = state.services,
+                                clientId = state.clientId,
+                                onUpdateBooking = { clientId, barberId, fecha, hora, serviceIds ->
+                                    viewModel.updateBooking(
+                                        booking.id,
+                                        clientId,
+                                        barberId,
+                                        fecha,
+                                        hora,
+                                        serviceIds
+                                    )
+                                },
+                                onCancel = { viewModel.cancelBooking(booking.id) },
+                                onShowDetail = { selectedBooking = booking },
                                 )
-                            },
-                            onCancel = { viewModel.cancelBooking(booking.id) },
-                            onShowDetail = { selectedBooking = booking },
-                        )
+                        }
                     }
                 }
             }
         }
 
-        if (state.isLoading) {
+        // 🔥 CAMBIO 3 — Ahora el LoadingIndicator aparece tanto en carga inicial
+        // como en pull-to-refresh
+        if (state.isLoading || state.isRefreshing) {
             LoadingIndicator()
         }
 

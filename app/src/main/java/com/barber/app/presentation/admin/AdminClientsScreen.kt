@@ -66,6 +66,7 @@ import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -198,12 +199,12 @@ private fun ClientAdminCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(client.nombres, style = MaterialTheme.typography.titleMedium)
+                    Text(client.nombres, style = MaterialTheme.typography.titleLarge)
                     if (client.email.isNotBlank()) {
                         Text(client.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (client.telefono.isNotBlank()) {
-                        Text(client.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Telefono: ${client.telefono}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (client.dni.isNotBlank()) {
                         Text("DNI: ${client.dni}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -220,7 +221,7 @@ private fun ClientAdminCard(
             ) {
                 Text(
                     text = if (client.active) "Activo" else "Inactivo",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
                     color = if (client.active) Color(0xFF388E3C) else Color(0xFFE53935),
                 )
                 Switch(

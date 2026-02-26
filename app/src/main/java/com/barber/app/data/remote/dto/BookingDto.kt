@@ -72,8 +72,9 @@ data class BookingDetailResponse(
         services = services?.map { it.toDomain() } ?: emptyList(),
     )
 
-    fun toEntity() = BookingEntity(
+    fun toEntity(clientId: Long) = BookingEntity(
         id = id,
+        clientId = clientId,
         clientName = clientName ?: "",
         barberName = barberName ?: "",
         fechaReserva = fechaReserva ?: "",

@@ -45,6 +45,7 @@ data class CreateClientUserRequest(
     @SerializedName("genero") val genero: String,
     @SerializedName("email") val email: String,
     @SerializedName("telefono") val telefono: String,
+    @SerializedName("password") val password: String
 )
 
 data class UpdateClientProfileRequest(

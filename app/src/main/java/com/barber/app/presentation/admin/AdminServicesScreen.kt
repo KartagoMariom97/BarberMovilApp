@@ -199,7 +199,7 @@ private fun ServiceAdminCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(service.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(service.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = onEdit) {
                     Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFFFC107))
                 }
@@ -212,11 +212,11 @@ private fun ServiceAdminCard(
             }
             Spacer(modifier = Modifier.height(20.dp))
             
-            Text("${service.estimatedMinutes} min", style = MaterialTheme.typography.bodySmall)
+            Text("Duracion : ${service.estimatedMinutes} min", style = MaterialTheme.typography.bodySmall)
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text("S/ ${service.price}", style = MaterialTheme.typography.bodySmall, color = Color.Black)
+            Text("Total: S/ ${service.price}", style = MaterialTheme.typography.bodySmall, color = Color.Black)
             
         }
     }

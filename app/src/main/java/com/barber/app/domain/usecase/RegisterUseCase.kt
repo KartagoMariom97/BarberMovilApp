@@ -1,5 +1,6 @@
 package com.barber.app.domain.usecase
 
+import android.R.attr.password
 import com.barber.app.core.common.Resource
 import com.barber.app.domain.model.Client
 import com.barber.app.domain.repository.AuthRepository
@@ -15,11 +16,13 @@ class RegisterUseCase @Inject constructor(
         genero: String,
         email: String,
         telefono: String,
+        password: String
     ): Resource<Client> {
         if (nombres.isBlank()) return Resource.Error("El nombre no puede estar vacío")
         if (email.isBlank()) return Resource.Error("El email no puede estar vacío")
         if (dni.isBlank()) return Resource.Error("El DNI no puede estar vacío")
         if (telefono.isBlank()) return Resource.Error("El teléfono no puede estar vacío")
+        if (password.isBlank()) return Resource.Error("La contraseña no puede estar vacío")
 
         return authRepository.register(
             nombres = nombres,
@@ -28,6 +31,7 @@ class RegisterUseCase @Inject constructor(
             genero = genero,
             email = email,
             telefono = telefono,
+            password = password
         )
     }
 }

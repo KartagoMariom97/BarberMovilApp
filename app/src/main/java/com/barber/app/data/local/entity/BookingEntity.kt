@@ -7,6 +7,7 @@ import com.barber.app.domain.model.Booking
 @Entity(tableName = "bookings")
 data class BookingEntity(
     @PrimaryKey val id: Long,
+    val clientId: Long, // 🔥 NUEVO CAMPO
     val clientName: String,
     val barberName: String,
     val fechaReserva: String,

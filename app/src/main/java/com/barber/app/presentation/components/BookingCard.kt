@@ -131,7 +131,7 @@ fun BookingCard(
 
     val statusColor = when (booking.status.uppercase()) {
         "PENDING"     -> PendingOrange
-        "CONFIRMED"   -> MaterialTheme.colorScheme.secondary
+        "CONFIRMED"   -> Color(0xFF4CAF50)
         "IN_PROGRESS" -> Color(0xFF7B1FA2)
         "CANCELLED"   -> MaterialTheme.colorScheme.error
         "COMPLETED"   -> MaterialTheme.colorScheme.primary

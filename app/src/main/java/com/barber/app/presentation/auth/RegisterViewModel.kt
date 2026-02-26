@@ -18,6 +18,7 @@ data class RegisterState(
     val genero: String = "Masculino",
     val email: String = "",
     val telefono: String = "",
+    val password: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSuccess: Boolean = false,
@@ -37,6 +38,7 @@ class RegisterViewModel @Inject constructor(
     fun onGeneroChange(value: String) { _state.value = _state.value.copy(genero = value, error = null) }
     fun onEmailChange(value: String) { _state.value = _state.value.copy(email = value, error = null) }
     fun onTelefonoChange(value: String) { _state.value = _state.value.copy(telefono = value, error = null) }
+    fun onPasswordChange(value: String) { _state.value = _state.value.copy(password = value, error = null) }
 
     fun clearError() {
         _state.value = _state.value.copy(error = null)
@@ -46,7 +48,7 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             val s = _state.value
-            when (val result = registerUseCase(s.nombres, s.fechaNacimiento, s.dni, s.genero, s.email, s.telefono)) {
+            when (val result = registerUseCase(s.nombres, s.fechaNacimiento, s.dni, s.genero, s.email, s.telefono,s.password)) {
                 is Resource.Success -> {
                     _state.value = _state.value.copy(isLoading = false, isSuccess = true)
                 }

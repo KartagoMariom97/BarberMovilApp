@@ -11,6 +11,7 @@ interface AuthRepository {
         genero: String,
         email: String,
         telefono: String,
+        password: String
     ): Resource<Client>
 
     /** Login cliente vía JWT — password es opcional para compatibilidad con cuentas sin contraseña */

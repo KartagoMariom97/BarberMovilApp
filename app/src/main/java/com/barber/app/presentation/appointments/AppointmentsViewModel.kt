@@ -32,6 +32,7 @@ data class AppointmentsState(
     val services: List<Service> = emptyList(),
     val clientId: Long = 0L,
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false, // 👈 NUEVO (para pull to refresh)
     val error: String? = null,
     val updateSuccess: Boolean = false   // 👈 NUEVO
 )
@@ -55,10 +56,25 @@ class AppointmentsViewModel @Inject constructor(
         loadServices()
     }
 
-    fun loadBookings() {
+    // ✅ FUNCIÓN PÚBLICA (NO suspend)
+// Esta es la que puedes llamar desde cualquier parte
+    fun loadBookings(isRefresh: Boolean = false) {
+        viewModelScope.launch {
+            loadBookingsInternal(isRefresh)
+        }
+    }
+
+    // ✅ NUEVA FUNCIÓN PRIVADA suspend
+    // Aquí vive la lógica real de carga
+    private suspend fun loadBookingsInternal(isRefresh: Boolean) {
     viewModelScope.launch {
 
-        _state.update { it.copy(isLoading = true) }
+        // 👇 Si es refresh solo activamos isRefreshing
+        if (isRefresh) {
+            _state.update { it.copy(isRefreshing = true) }
+        } else {
+            _state.update { it.copy(isLoading = true) }
+        }
 
         val prefs = userPreferencesRepository.userPreferences.first()
         val userId = prefs.clientId
@@ -73,6 +89,7 @@ class AppointmentsViewModel @Inject constructor(
                             .sortedByDescending { booking -> booking.fechaReserva },
                         clientId = userId,
                         isLoading = false,
+                        isRefreshing = false, // 👈 IMPORTANTE
                         error = null
                     )
                 }
@@ -82,7 +99,8 @@ class AppointmentsViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         error = result.message,
-                        isLoading = false
+                        isLoading = false,
+                        isRefreshing = false, // 👈 IMPORTANTE
                     )
                 }
             }
@@ -144,7 +162,7 @@ class AppointmentsViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         updateSuccess = true,
-                        isLoading = false,
+                        isLoading = false, // 👈 ahora sí se quita cuando ya terminó
                         error = null
                     )
                 }
@@ -170,7 +188,13 @@ class AppointmentsViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             when (val result = cancelBookingUseCase(bookingId)) {
-                is Resource.Success -> loadBookings()
+                is Resource.Success -> {
+
+                    // 👇 ESPERAMOS que termine
+                    loadBookings()
+
+                    _state.update { it.copy(isLoading = false) }
+                }
                 is Resource.Error -> {
                     _state.value = _state.value.copy(isLoading = false, error = result.message)
                 }
