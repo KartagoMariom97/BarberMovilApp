@@ -15,9 +15,7 @@ interface AuthRepository {
     ): Resource<Client>
 
     /** Login cliente vía JWT — password es opcional para compatibilidad con cuentas sin contraseña */
-    suspend fun login(email: String, password: String = ""): Resource<Unit>
-
-    suspend fun adminLogin(email: String, password: String, role: String): Resource<Unit>
+    suspend fun login(email: String, password: String): Resource<Unit>
 
     suspend fun logout()
 

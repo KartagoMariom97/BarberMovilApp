@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.barber.app.BuildConfig
 import com.barber.app.presentation.components.ErrorOverlay
 
 @Composable
@@ -49,6 +50,9 @@ fun LoginScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // 🔥 VERSIONAMIENTO — Obtenemos la versión desde BuildConfig
+    val appVersion = "v${BuildConfig.VERSION_NAME}"
 
     // Impide que el botón retroceder regrese a una pantalla autenticada
     BackHandler(enabled = true) { /* No retroceder desde login */ }
@@ -146,6 +150,15 @@ fun LoginScreen(
                 )
                 Text("Acceso Admin")
             }
+
+            // 🔥 NUEVO — VERSIONAMIENTO VISUAL
+            Spacer(modifier = Modifier.height(96.dp))
+
+            Text(
+                text = appVersion,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         ErrorOverlay(

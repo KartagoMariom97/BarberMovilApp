@@ -80,10 +80,24 @@ class HomeViewModel @Inject constructor(
                         if (showDialog) confirmedDialogShown = true
 
                         // Detectar reservas nuevas no vistas (creadas por el admin)
+                        // 🔥🔥🔥 CAMBIO IMPORTANTE AQUÍ
+                        // Ahora SOLO consideramos como "nueva reserva del admin"
+                        // aquellas que están en estado PENDING.
+                        // CONFIRMED ya no entra aquí para evitar doble diálogo.
                         val seenIds = userPreferencesRepository.getSeenBookingIds()
-                        val newBookings = result.data.filter {
-                            it.id !in seenIds &&
-                            it.status.uppercase() in listOf("PENDING", "CONFIRMED")
+                        val newBookings = result.data.filter { booking ->
+                            booking.id !in seenIds &&
+                                    booking.status.uppercase() == "PENDING" &&
+
+                                    /**
+                                     * 🔥 CAMBIO CRÍTICO
+                                     * Solo consideramos como "nueva reserva del admin"
+                                     * aquellas creadas por ADMIN.
+                                     *
+                                     * Si el cliente creó la reserva,
+                                     * NO debe mostrarse este dialog.
+                                     */
+                                    booking.createdBy.uppercase() == "ADMIN"
                         }
 
                         _state.value = _state.value.copy(

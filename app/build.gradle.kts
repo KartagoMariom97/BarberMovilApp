@@ -15,8 +15,9 @@ android {
         applicationId = "com.barber.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        //VERSIONAMIENTO DE LA APP
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     // 🔥 CAMBIO 1 — Agregado flavorDimensions

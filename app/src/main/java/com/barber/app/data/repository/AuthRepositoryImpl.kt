@@ -12,6 +12,7 @@ import com.barber.app.data.remote.dto.LoginRequest
 import com.barber.app.data.remote.dto.UpdateUserRequest
 import com.barber.app.domain.model.Client
 import com.barber.app.domain.repository.AuthRepository
+import com.barber.app.data.local.DatabaseCleaner
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -23,6 +24,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val userApi: UserApi,
     private val tokenHolder: TokenHolder,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val databaseCleaner: DatabaseCleaner,   // 🔥 NUEVO
 ) : AuthRepository {
 
     override suspend fun register(
@@ -71,16 +73,15 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    /** Login cliente usando JWT (POST /auth/login con role=CLIENT) para habilitar expiración de sesión */
     override suspend fun login(email: String, password: String): Resource<Unit> {
         return try {
             val response = authApi.login(
                 LoginRequest(
                     email = email.trim().lowercase(),
-                    password = password,
-                    role = "CLIENT",
+                    password = password
                 )
             )
+
             userPreferencesRepository.saveAdminSession(
                 token = response.token,
                 role = response.role,
@@ -89,55 +90,22 @@ class AuthRepositoryImpl @Inject constructor(
                 nombres = response.nombres,
                 email = response.email,
             )
+
             tokenHolder.accessToken = response.token
+
             Resource.Success(Unit)
+
         } catch (e: HttpException) {
             val msg = when (e.code()) {
                 400 -> "Credenciales inválidas."
-                401 -> "No autorizado. Credenciales incorrectas."
-                404 -> "No se encontró un cliente con ese email."
-                else -> "Error del servidor (${e.code()})"
-            }
-            Resource.Error(msg)
-        } catch (e: SocketTimeoutException) {
-            Resource.Error("Tiempo de espera agotado. Verifica tu conexión e intenta de nuevo.")
-        } catch (e: UnknownHostException) {
-            Resource.Error("Sin conexión a internet. Verifica tu red e intenta de nuevo.")
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Error al iniciar sesión")
-        }
-    }
-
-    override suspend fun adminLogin(email: String, password: String, role: String): Resource<Unit> {
-        return try {
-            val response = authApi.login(
-                LoginRequest(
-                    email = email.trim().lowercase(),
-                    password = password,
-                    role = role.uppercase(),
-                )
-            )
-            userPreferencesRepository.saveAdminSession(
-                token = response.token,
-                role = response.role,
-                userId = response.userId,
-                entityId = response.entityId,
-                nombres = response.nombres,
-                email = response.email,
-            )
-            tokenHolder.accessToken = response.token
-            Resource.Success(Unit)
-        } catch (e: HttpException) {
-            val msg = when (e.code()) {
-                400 -> "Credenciales inválidas. Verifica email, contraseña y rol."
-                401 -> "No autorizado. Credenciales incorrectas."
-                403 -> "Acceso denegado para este rol."
+                401 -> "No autorizado."
                 404 -> "No se encontró usuario con ese email."
                 else -> "Error del servidor (${e.code()})"
             }
             Resource.Error(msg)
+
         } catch (e: SocketTimeoutException) {
-            Resource.Error("Tiempo de espera agotado. Verifica tu conexión.")
+            Resource.Error("Tiempo de espera agotado.")
         } catch (e: UnknownHostException) {
             Resource.Error("Sin conexión a internet.")
         } catch (e: Exception) {
@@ -146,8 +114,23 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun logout() {
+
+        /**
+         * 🔐 1. Limpiar token en memoria
+         */
         tokenHolder.clear()
+
+        /**
+         * 🔐 2. Limpiar sesión en DataStore
+         */
         userPreferencesRepository.clearSession()
+
+        /**
+         * 🔥 3. Limpiar completamente Room
+         * Esto fuerza que al volver a iniciar sesión
+         * todo se vuelva a sincronizar desde el servidor.
+         */
+        databaseCleaner.clearAll()
     }
 
     override suspend fun updateAdminProfile(

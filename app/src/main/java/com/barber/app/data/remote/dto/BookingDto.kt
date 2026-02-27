@@ -15,7 +15,8 @@ data class BookingResponse(
     @SerializedName("status") val status: String?,
     @SerializedName("startTime") val startTime: String?,
     @SerializedName("endTime") val endTime: String?,
-    @SerializedName("createdAt") val createdAt: String?,
+    @SerializedName("createdBy") val createdBy: String?,
+    @SerializedName("createdAt") val createdAt: String?
 ) {
     fun toDomain() = Booking(
         id = id,
@@ -25,7 +26,8 @@ data class BookingResponse(
         status = status ?: "",
         startTime = startTime ?: "",
         endTime = endTime,
-        createdAt = createdAt,
+        createdBy = createdBy ?: "",
+        createdAt = createdAt
     )
 }
 

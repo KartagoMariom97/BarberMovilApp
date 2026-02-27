@@ -8,6 +8,7 @@ data class Booking(
     val barberName: String,
     val fechaReserva: String,
     val status: String,
+    val createdBy: String = "",
     val startTime: String,
     val endTime: String? = null,
     val createdAt: String? = null,

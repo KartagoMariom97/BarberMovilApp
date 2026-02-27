@@ -60,10 +60,9 @@ class AdminLoginViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
-            when (val result = authRepository.adminLogin(
+            when (val result = authRepository.login(
                 email = current.email,
-                password = current.password,
-                role = current.role,
+                password = current.password
             )) {
                 is Resource.Success -> {
                     val prefs = userPreferencesRepository.userPreferences.first()
