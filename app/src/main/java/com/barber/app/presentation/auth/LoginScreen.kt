@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -166,5 +167,25 @@ fun LoginScreen(
             visible = state.error != null,
             onDismiss = viewModel::clearError,
         )
+
+        // AlertDialog: cuenta deshabilitada — backend responde 403 ACCOUNT_DISABLED
+        if (state.accountDisabled) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearAccountDisabled() },
+                containerColor = androidx.compose.ui.graphics.Color.White,
+                title = { Text("Cuenta deshabilitada", color = androidx.compose.ui.graphics.Color.Black) },
+                text = {
+                    Text(
+                        "Tu cuenta ha sido deshabilitada. Comunícate con el administrador.",
+                        color = androidx.compose.ui.graphics.Color.Black,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearAccountDisabled() }) {
+                        Text("Entendido", color = androidx.compose.ui.graphics.Color.Black)
+                    }
+                },
+            )
+        }
     }
 }

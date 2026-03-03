@@ -17,6 +17,8 @@ data class LoginState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSuccess: Boolean = false,
+    // true cuando el backend responde 403 ACCOUNT_DISABLED
+    val accountDisabled: Boolean = false,
 )
 
 @HiltViewModel
@@ -39,6 +41,10 @@ class LoginViewModel @Inject constructor(
         _state.value = _state.value.copy(error = null)
     }
 
+    fun clearAccountDisabled() {
+        _state.value = _state.value.copy(accountDisabled = false)
+    }
+
     fun login() {
         val current = _state.value
         if (current.email.isBlank()) {
@@ -56,7 +62,13 @@ class LoginViewModel @Inject constructor(
                     _state.value = _state.value.copy(isLoading = false, isSuccess = true)
                 }
                 is Resource.Error -> {
-                    _state.value = _state.value.copy(isLoading = false, error = result.message)
+                    // Detectar cuenta deshabilitada para mostrar AlertDialog específico
+                    if (result.message?.contains("ACCOUNT_DISABLED", ignoreCase = true) == true ||
+                        result.message?.contains("deshabilitada", ignoreCase = true) == true) {
+                        _state.value = _state.value.copy(isLoading = false, accountDisabled = true)
+                    } else {
+                        _state.value = _state.value.copy(isLoading = false, error = result.message)
+                    }
                 }
                 is Resource.Loading -> Unit
             }

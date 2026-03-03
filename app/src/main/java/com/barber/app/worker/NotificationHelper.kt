@@ -45,4 +45,35 @@ object NotificationHelper {
             // Permission not granted
         }
     }
+
+    fun showBookingStatusUpdate(
+        context: Context,
+        bookingId: Long,
+        title: String,
+        body: String,
+    ) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("bookingId", bookingId)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, (bookingId + 10000).toInt(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        try {
+            NotificationManagerCompat.from(context).notify((bookingId + 10000).toInt(), notification)
+        } catch (_: SecurityException) {
+            // Permission not granted
+        }
+    }
 }

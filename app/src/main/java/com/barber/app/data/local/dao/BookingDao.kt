@@ -9,7 +9,8 @@ import com.barber.app.data.local.entity.BookingServiceDetailEntity
 @Dao
 interface BookingDao {
 
-    @Query("SELECT * FROM bookings WHERE clientId = :clientId AND status NOT IN ('CANCELLED') ORDER BY fechaReserva DESC")
+    // [FIX] Eliminado filtro NOT IN ('CANCELLED') — la capa de presentación gestiona qué estados mostrar
+    @Query("SELECT * FROM bookings WHERE clientId = :clientId ORDER BY fechaReserva DESC")
     suspend fun getBookingsByClient(clientId: Long): List<BookingEntity>
 
     @Query("SELECT * FROM booking_service_details WHERE bookingId = :bookingId")

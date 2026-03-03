@@ -87,6 +87,11 @@ import com.barber.app.presentation.components.LoadingIndicator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+// [FIX-2] Imports para conversión correcta UTC → LocalDate en DatePicker del admin
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import androidx.compose.material3.SelectableDates
 
 private val statusOptions = listOf(
     null to "Todos",
@@ -98,9 +103,11 @@ private val statusOptions = listOf(
 )
 
 private val nextStatusOptions: Map<String, List<Pair<String, String>>> = mapOf(
-    "PENDING"     to listOf("CONFIRMED" to "Confirmar", "CANCELLED" to "Cancelar"),
-    "CONFIRMED"   to listOf("IN_PROGRESS" to "Iniciar", "CANCELLED" to "Cancelar"),
-    "IN_PROGRESS" to listOf("COMPLETED" to "Completar"),
+    "PENDING"          to listOf("CONFIRMED" to "Confirmar", "CANCELLED" to "Cancelar"),
+    // [FIX-3] MODIFIED_PENDING: el admin solo puede aprobar (→CONFIRMED) o rechazar (→CANCELLED)
+    "MODIFIED_PENDING" to listOf("CONFIRMED" to "Aprobar", "CANCELLED" to "Rechazar"),
+    "CONFIRMED"        to listOf("IN_PROGRESS" to "Iniciar", "CANCELLED" to "Cancelar"),
+    "IN_PROGRESS"      to listOf("COMPLETED" to "Completar"),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -154,8 +161,18 @@ fun AdminBookingsScreen(
                 }
             }
 
+            // [FIX-2] Filtrado local: cuando el filtro activo es PENDING, incluye también
+            // MODIFIED_PENDING (el backend devuelve todos para ese caso; aquí los acotamos).
+            val displayBookings = when (state.statusFilter) {
+                "PENDING" -> state.bookings.filter {
+                    val s = it.status.uppercase()
+                    s == "PENDING" || s == "MODIFIED_PENDING"
+                }
+                else -> state.bookings
+            }
+
             Box(modifier = Modifier.fillMaxSize()) {
-                if (!state.isLoading && state.bookings.isEmpty()) {
+                if (!state.isLoading && displayBookings.isEmpty()) {
                     Text(
                         "No hay reservas",
                         modifier = Modifier.align(Alignment.Center),
@@ -167,12 +184,14 @@ fun AdminBookingsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         item { Spacer(modifier = Modifier.height(4.dp)) }
-                        items(state.bookings) { booking ->
+                        // key estable para que Compose detecte cambios por id y recomponga correctamente
+                        items(displayBookings, key = { it.id }) { booking ->
                             AdminBookingCard(
                                 booking = booking,
                                 onChangeStatus = { newStatus ->
                                     changeStatusTarget = booking to newStatus
                                 },
+                                // Edición solo permitida en PENDING y CONFIRMED; MODIFIED_PENDING no
                                 onEdit = if (booking.status.uppercase() in listOf("PENDING", "CONFIRMED")) {
                                     { viewModel.showEditDialog(booking) }
                                 } else null,
@@ -268,8 +287,21 @@ private fun EditBookingDialog(
     var serviceExpanded by remember { mutableStateOf(false) }
     var showFechaPicker by remember { mutableStateOf(false) }
     var showTimePicker  by remember { mutableStateOf(false) }
-    val fechaPickerState = rememberDatePickerState()
-    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+
+    // [FIX-2] Medianoche UTC de hoy para bloquear selección de fechas pasadas
+    val todayUtcMillis = remember {
+        LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    }
+    val fechaPickerState = rememberDatePickerState(
+        // Pre-seleccionar la fecha actual de la reserva
+        initialSelectedDateMillis = runCatching {
+            LocalDate.parse(booking.fechaReserva).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        }.getOrNull(),
+        // [FIX-2] Solo permitir fechas >= hoy
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= todayUtcMillis
+        },
+    )
 
     val canUpdate = selectedBarber != null && fecha.isNotBlank() && hora.isNotBlank() && selectedServiceIds.isNotEmpty()
 
@@ -278,7 +310,11 @@ private fun EditBookingDialog(
             onDismissRequest = { showFechaPicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    fechaPickerState.selectedDateMillis?.let { millis -> fecha = sdf.format(Date(millis)) }
+                    fechaPickerState.selectedDateMillis?.let { millis ->
+                        // [FIX-2] Convertir con ZoneOffset.UTC (el DatePicker almacena millis en UTC);
+                        // usar zona local causaba que se mostrara el día anterior en zonas UTC-N
+                        fecha = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
+                    }
                     showFechaPicker = false
                 }) { Text("Aceptar", color = Color.Black) }
             },
@@ -524,8 +560,17 @@ private fun CreateBookingDialog(
     var serviceExpanded  by remember { mutableStateOf(false) }
     var showFechaPicker  by remember { mutableStateOf(false) }
     var showTimePicker   by remember { mutableStateOf(false) }
-    val fechaPickerState = rememberDatePickerState()
-    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+
+    // [FIX-2] Medianoche UTC de hoy para bloquear selección de fechas pasadas
+    val todayUtcMillis = remember {
+        LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    }
+    val fechaPickerState = rememberDatePickerState(
+        // [FIX-2] Solo permitir fechas >= hoy
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= todayUtcMillis
+        },
+    )
 
     val canCreate = selectedClient != null && selectedBarber != null &&
         fecha.isNotBlank() && hora.isNotBlank() && selectedServiceIds.isNotEmpty()
@@ -537,7 +582,8 @@ private fun CreateBookingDialog(
             confirmButton = {
                 TextButton(onClick = {
                     fechaPickerState.selectedDateMillis?.let { millis ->
-                        fecha = sdf.format(Date(millis))
+                        // [FIX-2] Convertir con ZoneOffset.UTC para evitar desfase de zona horaria
+                        fecha = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showFechaPicker = false
                 }) { Text("Aceptar", color = Color.Black) }
@@ -800,20 +846,24 @@ private fun AdminBookingCard(
     onEdit: (() -> Unit)? = null,
 ) {
     val statusColor = when (booking.status.uppercase()) {
-        "PENDING"     -> Color(0xFFFF9800)
-        "CONFIRMED"   -> Color(0xFF4CAF50)
-        "IN_PROGRESS" -> Color(0xFF7B1FA2)
-        "CANCELLED"   -> Color(0xFFE53935)
-        "COMPLETED"   -> Color(0xFF1565C0)
-        else          -> Color(0xFF9E9E9E)
+        "PENDING"          -> Color(0xFFFF9800)
+        // [FIX-3] MODIFIED_PENDING: azul para distinguirlo de PENDING y CONFIRMED
+        "MODIFIED_PENDING" -> Color(0xFF1976D2)
+        "CONFIRMED"        -> Color(0xFF4CAF50)
+        "IN_PROGRESS"      -> Color(0xFF7B1FA2)
+        "CANCELLED"        -> Color(0xFFE53935)
+        "COMPLETED"        -> Color(0xFF1565C0)
+        else               -> Color(0xFF9E9E9E)
     }
     val statusLabel = when (booking.status.uppercase()) {
-        "PENDING"     -> "Pendiente"
-        "CONFIRMED"   -> "Confirmada"
-        "IN_PROGRESS" -> "En Progreso"
-        "CANCELLED"   -> "Cancelada"
-        "COMPLETED"   -> "Completada"
-        else          -> booking.status
+        "PENDING"          -> "Pendiente"
+        // [FIX-3] Etiqueta visual para MODIFIED_PENDING
+        "MODIFIED_PENDING" -> "Modif. Pendiente"
+        "CONFIRMED"        -> "Confirmada"
+        "IN_PROGRESS"      -> "En Progreso"
+        "CANCELLED"        -> "Cancelada"
+        "COMPLETED"        -> "Completada"
+        else               -> booking.status
     }
 
     Card(

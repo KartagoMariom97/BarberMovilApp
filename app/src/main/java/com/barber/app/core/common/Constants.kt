@@ -7,4 +7,9 @@ object Constants {
     const val DATASTORE_NAME = "barber_preferences"
     const val NOTIFICATION_CHANNEL_ID = "appointment_reminders"
     const val NOTIFICATION_CHANNEL_NAME = "Recordatorios de Citas"
+
+    val WS_URL: String = BASE_URL
+        .replace("https://", "wss://")
+        .replace("http://", "ws://")
+        .substringBefore("/api/v1/") + "/ws"
 }

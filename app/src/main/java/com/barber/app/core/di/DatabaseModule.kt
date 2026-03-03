@@ -21,7 +21,8 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): BarberDatabase =
         Room.databaseBuilder(context, BarberDatabase::class.java, "barber_db")
-            .fallbackToDestructiveMigration()
+            // Migración controlada v1→v2: agrega columnas modifiedByClient y modificationRejected
+            .addMigrations(BarberDatabase.MIGRATION_1_2)
             .build()
 
     @Provides

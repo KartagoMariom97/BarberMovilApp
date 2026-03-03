@@ -11,6 +11,7 @@ import com.barber.app.data.remote.api.AdminServiceApi
 import com.barber.app.data.remote.api.AppointmentApi
 import com.barber.app.data.remote.api.BarberApi
 import com.barber.app.data.remote.api.ClientApi
+import com.barber.app.data.remote.api.NotificationApi
 import com.barber.app.data.remote.api.ServiceApi
 import com.barber.app.data.remote.api.UserApi
 import com.google.gson.Gson
@@ -117,4 +118,9 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi =
         retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(retrofit: Retrofit): NotificationApi =
+        retrofit.create(NotificationApi::class.java)
 }

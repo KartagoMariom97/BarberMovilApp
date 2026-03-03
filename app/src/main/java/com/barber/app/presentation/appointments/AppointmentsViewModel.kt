@@ -19,6 +19,7 @@ import com.barber.app.domain.usecase.UpdateBookingUseCase
 import com.barber.app.domain.usecase.GetBarbersUseCase
 import com.barber.app.domain.usecase.GetServicesUseCase
 
+import com.barber.app.core.websocket.StompWebSocketManager
 import com.barber.app.domain.model.Barber
 import com.barber.app.domain.model.Service
 
@@ -32,9 +33,11 @@ data class AppointmentsState(
     val services: List<Service> = emptyList(),
     val clientId: Long = 0L,
     val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false, // 👈 NUEVO (para pull to refresh)
+    val isRefreshing: Boolean = false,
     val error: String? = null,
-    val updateSuccess: Boolean = false   // 👈 NUEVO
+    val updateSuccess: Boolean = false,
+    // [FIX-3] true cuando el admin editó datos estructurales de una reserva del cliente
+    val showAdminUpdatedDialog: Boolean = false,
 )
 
 @HiltViewModel
@@ -45,15 +48,25 @@ class AppointmentsViewModel @Inject constructor(
     private val getBarbersUseCase: GetBarbersUseCase,
     private val getServicesUseCase: GetServicesUseCase,
     private val userPreferencesRepository: UserPreferencesRepository,
+    // [FIX-5] Inyectado para escuchar cambios en tiempo real vía WebSocket
+    private val stompWebSocketManager: StompWebSocketManager,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppointmentsState())
     val state: StateFlow<AppointmentsState> = _state.asStateFlow()
 
+    // [FIX-3] Flag para evitar falso positivo: cuando el cliente mismo edita,
+    // el WebSocket notifica su propio cambio — no debe activar el dialog de "admin editó"
+    private var clientJustEdited = false
+
     init {
         loadBookings()
         loadBarbers()
         loadServices()
+        // Recarga silenciosa cuando llega notificación WebSocket de cambio de estado
+        viewModelScope.launch {
+            stompWebSocketManager.notifications.collect { loadBookings(isRefresh = true) }
+        }
     }
 
     // ✅ FUNCIÓN PÚBLICA (NO suspend)
@@ -64,12 +77,10 @@ class AppointmentsViewModel @Inject constructor(
         }
     }
 
-    // ✅ NUEVA FUNCIÓN PRIVADA suspend
-    // Aquí vive la lógica real de carga
     private suspend fun loadBookingsInternal(isRefresh: Boolean) {
-    viewModelScope.launch {
+        // Guardar snapshot previo antes de recargar (para detección de edición del admin)
+        val previousBookings = if (isRefresh) _state.value.bookings else emptyList()
 
-        // 👇 Si es refresh solo activamos isRefreshing
         if (isRefresh) {
             _state.update { it.copy(isRefreshing = true) }
         } else {
@@ -82,37 +93,53 @@ class AppointmentsViewModel @Inject constructor(
         when (val result = getClientBookingsUseCase(userId)) {
 
             is Resource.Success -> {
+                // [FIX-FILTERS] Sin filtro en ViewModel — la UI filtra por chip activo
+                // CANCELLED y COMPLETED llegan al estado para que los chips los muestren
+                val newBookings = result.data
+                    .sortedByDescending { booking -> booking.fechaReserva }
+
+                // [FIX-3] Detectar si el admin editó datos estructurales de una reserva.
+                // Solo aplica en refresh (WebSocket) y cuando el cliente NO acaba de editar.
+                // Comparamos barbero, fecha u hora: si alguno cambió sin que el cliente lo iniciara
+                // → el admin modificó la reserva.
+                val adminEdited = isRefresh && !clientJustEdited && newBookings.any { newB ->
+                    val old = previousBookings.find { it.id == newB.id } ?: return@any false
+                    newB.barberName != old.barberName ||
+                        newB.fechaReserva != old.fechaReserva ||
+                        newB.startTime.take(5) != old.startTime.take(5)
+                }
+                // Resetear flag: el siguiente refresh ya no es del cliente
+                if (isRefresh) clientJustEdited = false
+
                 _state.update {
                     it.copy(
-                        bookings = result.data
-                            .filter { booking -> booking.status != "CANCELLED" }
-                            .sortedByDescending { booking -> booking.fechaReserva },
+                        bookings = newBookings,
                         clientId = userId,
                         isLoading = false,
-                        isRefreshing = false, // 👈 IMPORTANTE
-                        error = null
+                        isRefreshing = false,
+                        error = null,
+                        // [FIX-4] OR: nunca baja a false automáticamente; solo clearAdminUpdatedDialog()
+                        showAdminUpdatedDialog = it.showAdminUpdatedDialog || adminEdited,
                     )
                 }
             }
 
             is Resource.Error -> {
+                if (isRefresh) clientJustEdited = false
                 _state.update {
                     it.copy(
                         error = result.message,
                         isLoading = false,
-                        isRefreshing = false, // 👈 IMPORTANTE
+                        isRefreshing = false,
                     )
                 }
             }
 
             is Resource.Loading -> {
-                _state.update {
-                    it.copy(isLoading = true)
-                }
+                _state.update { it.copy(isLoading = true) }
             }
         }
     }
-}
 
     private fun loadBarbers() {
         viewModelScope.launch {
@@ -158,11 +185,14 @@ class AppointmentsViewModel @Inject constructor(
             )
         ) {
             is Resource.Success -> {
+                // [FIX-3] Marcar que fue el cliente quien editó; el WebSocket que llega
+                // a continuación corresponde a su propio cambio, no a una edición del admin
+                clientJustEdited = true
                 loadBookings()
                 _state.update {
                     it.copy(
                         updateSuccess = true,
-                        isLoading = false, // 👈 ahora sí se quita cuando ya terminó
+                        isLoading = false,
                         error = null
                     )
                 }
@@ -205,5 +235,10 @@ class AppointmentsViewModel @Inject constructor(
 
     fun clearUpdateSuccess() {
         _state.update { it.copy(updateSuccess = false) }
+    }
+
+    // [FIX-3] El usuario presionó Aceptar en el dialog de "admin editó tu reserva"
+    fun clearAdminUpdatedDialog() {
+        _state.update { it.copy(showAdminUpdatedDialog = false) }
     }
 }

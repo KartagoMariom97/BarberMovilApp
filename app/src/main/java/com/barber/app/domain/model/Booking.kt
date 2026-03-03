@@ -13,6 +13,8 @@ data class Booking(
     val endTime: String? = null,
     val createdAt: String? = null,
     val services: List<BookingServiceDetail> = emptyList(),
+    // true cuando el cliente ya usó su única modificación permitida
+    val modificationUsed: Boolean = false,
 )
 
 data class BookingServiceDetail(

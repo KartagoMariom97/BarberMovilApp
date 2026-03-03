@@ -66,6 +66,11 @@ private fun formatTimeDisplay(time: String): String {
     return "$displayHour:$minute $amPm"
 }
 
+// [FIX-VISUAL] Estado derivado: CONFIRMED + modificationUsed = aprobado por admin, no editable
+// Centralizado aquí para que BookingCard y BookingDetailContent lo usen sin duplicar lógica
+private val Booking.isModifiedConfirmed: Boolean
+    get() = status.uppercase() == "CONFIRMED" && modificationUsed
+
 private val YellowButton = Color(0xFFFFC107)
 private val RedButton    = Color(0xFFE53935)
 private val PendingOrange = Color(0xFFFF9800)
@@ -129,16 +134,23 @@ fun BookingCard(
         )
     }
 
-    val statusColor = when (booking.status.uppercase()) {
-        "PENDING"     -> PendingOrange
-        "CONFIRMED"   -> Color(0xFF4CAF50)
-        "IN_PROGRESS" -> Color(0xFF7B1FA2)
-        "CANCELLED"   -> MaterialTheme.colorScheme.error
-        "COMPLETED"   -> MaterialTheme.colorScheme.primary
-        else          -> MaterialTheme.colorScheme.onSurface
+    // [FIX-VISUAL] Evaluar estado derivado primero para override de color
+    val isModifiedConfirmed = booking.isModifiedConfirmed
+    val statusColor = when {
+        isModifiedConfirmed                                  -> Color(0xFF1565C0) // azul oscuro: mod. aprobada
+        booking.status.uppercase() == "PENDING"             -> PendingOrange
+        booking.status.uppercase() == "CONFIRMED"           -> Color(0xFF4CAF50)
+        booking.status.uppercase() == "MODIFIED_PENDING"    -> Color(0xFF1976D2)
+        booking.status.uppercase() == "IN_PROGRESS"         -> Color(0xFF7B1FA2)
+        booking.status.uppercase() == "CANCELLED"           -> MaterialTheme.colorScheme.error
+        booking.status.uppercase() == "COMPLETED"           -> MaterialTheme.colorScheme.primary
+        else                                                -> MaterialTheme.colorScheme.onSurface
     }
 
+    // MODIFIED_PENDING excluido: sin iconos mientras el admin revisa la modificación del cliente
     val isActive = booking.status.uppercase() in listOf("PENDING", "CONFIRMED")
+    // [FIX-1] Regla correcta: PENDING o CONFIRMED + sin modificación previa
+    val canEdit = booking.status.uppercase() in listOf("PENDING", "CONFIRMED") && !booking.modificationUsed
 
     Card(
         // ← CAMBIAR COLOR: fondo de la card (containerColor)
@@ -155,12 +167,13 @@ fun BookingCard(
                 Text(booking.fechaReserva, style = MaterialTheme.typography.titleLarge)
                 // Ícono semántico por cada estado (antes: solo PENDING tenía ícono)
                 val statusIcon = when (booking.status.uppercase()) {
-                    "PENDING"     -> Icons.Default.Schedule
-                    "CONFIRMED"   -> Icons.Default.CheckCircle
-                    "IN_PROGRESS" -> Icons.Default.PlayArrow
-                    "CANCELLED"   -> Icons.Default.Cancel
-                    "COMPLETED"   -> Icons.Default.Done
-                    else          -> Icons.Default.Schedule
+                    "PENDING"          -> Icons.Default.Schedule
+                    "CONFIRMED"        -> Icons.Default.CheckCircle
+                    "MODIFIED_PENDING" -> Icons.Default.Info   // esperando revisión del admin
+                    "IN_PROGRESS"      -> Icons.Default.PlayArrow
+                    "CANCELLED"        -> Icons.Default.Cancel
+                    "COMPLETED"        -> Icons.Default.Done
+                    else               -> Icons.Default.Schedule
                 }
                 Icon(
                     statusIcon,
@@ -221,11 +234,21 @@ fun BookingCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Indicador visual (no botón): el cliente ya usó su única modificación
+                if (booking.modificationUsed) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Reserva ya modificada",
+                        tint = Color(0xFFFFC107),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
                 // [CAMBIO] Icono de detalles cambiado a negro absoluto (antes era gris 0xFF9E9E9E)
                 IconButton(onClick = { onShowDetail?.invoke() }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Info, "Detalles", tint = Color.Black, modifier = Modifier.size(20.dp))
                 }
-                if (showActions && isActive) {
+                // Editar: solo si canEdit (no modificó antes y no fue rechazada la modificación)
+                if (showActions && canEdit) {
                     IconButton(onClick = { showEditDialog = true }, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Edit, "Editar", tint = YellowButton, modifier = Modifier.size(20.dp))
                     }
@@ -278,12 +301,15 @@ private fun BookingServiceChip(name: String) {
 private fun BookingStatusChip(status: String) {
     // [CAMBIO] cada estado tiene su color semántico propio, letras blancas para contraste
     val (bgColor, label) = when (status.uppercase()) {
-        "PENDING"     -> Color(0xFFFFC107) to "Pendiente"    // amarillo
-        "CONFIRMED"   -> Color(0xFF4CAF50) to "Confirmada"   // verde
-        "IN_PROGRESS" -> Color(0xFF7B1FA2) to "En Progreso"  // morado
-        "CANCELLED"   -> Color(0xFFE53935) to "Cancelada"    // rojo
-        "COMPLETED"   -> Color(0xFF1565C0) to "Completada"   // azul
-        else          -> Color(0xFF9E9E9E) to status
+        "PENDING"            -> Color(0xFFFFC107) to "Pendiente"
+        "CONFIRMED"          -> Color(0xFF4CAF50) to "Confirmada"
+        "MODIFIED_PENDING"   -> Color(0xFF1976D2) to "Modificación Pendiente"
+        "IN_PROGRESS"        -> Color(0xFF7B1FA2) to "En Progreso"
+        "CANCELLED"          -> Color(0xFFE53935) to "Cancelada"
+        "COMPLETED"          -> Color(0xFF1565C0) to "Completada"
+        // [FIX-VISUAL] Estado visual derivado: modificación aprobada por admin
+        "MODIFIED_CONFIRMED" -> Color(0xFF1565C0) to "Modificado y Confirmado"
+        else                 -> Color(0xFF9E9E9E) to status
     }
 
     Box(
@@ -365,7 +391,8 @@ fun BookingDetailContent(booking: Booking) {
     ) {
         Text("Estado:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
         // [CAMBIO] chip de estado con color propio por tipo (amarillo/verde/rojo/azul)
-        BookingStatusChip(status = booking.status)
+        // [FIX-VISUAL] Usar estado derivado centralizado para chip de detalles
+        BookingStatusChip(status = if (booking.isModifiedConfirmed) "MODIFIED_CONFIRMED" else booking.status)
     }
 
     // Servicios

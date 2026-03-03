@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -30,15 +31,23 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.barber.app.core.common.Constants
 import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.core.navigation.BottomNavBar
 import com.barber.app.core.navigation.NavGraph
 import com.barber.app.core.navigation.Screen
 import com.barber.app.core.network.TokenHolder
+import com.barber.app.core.websocket.StompWebSocketManager
+import com.barber.app.domain.repository.NotificationRepository
 import com.barber.app.presentation.theme.BarberTheme
+import com.barber.app.service.NotificationEventManager
+import com.barber.app.worker.NotificationHelper
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -50,10 +59,22 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var tokenHolder: TokenHolder
 
+    @Inject
+    lateinit var stompWebSocketManager: StompWebSocketManager
+
+    @Inject
+    lateinit var notificationRepository: NotificationRepository
+
+    @Inject
+    lateinit var notificationEventManager: NotificationEventManager
+
     private var startDestination by mutableStateOf<Screen?>(null)
 
     /** true cuando el 401 de JWT expira — activa diálogo y redirección al login */
     private var isSessionExpired by mutableStateOf(false)
+
+    /** bookingId de la reserva recién confirmada; null cuando no hay evento pendiente */
+    private var confirmedBookingId by mutableStateOf<Long?>(null)
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -66,7 +87,6 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val prefs = userPreferencesRepository.userPreferences.first()
-            // Restaurar token en memoria para que AuthInterceptor lo adjunte desde el primer request
             if (prefs.token.isNotEmpty()) {
                 tokenHolder.accessToken = prefs.token
             }
@@ -75,6 +95,23 @@ class MainActivity : ComponentActivity() {
                 prefs.isLoggedIn -> Screen.Home
                 else -> Screen.Login
             }
+
+            if (prefs.isLoggedIn && prefs.token.isNotEmpty()) {
+                stompWebSocketManager.connect(Constants.WS_URL, prefs.token)
+                runCatching {
+                    val fcmToken = FirebaseMessaging.getInstance().token.await()
+                    launch(Dispatchers.IO) { notificationRepository.updateFcmToken(fcmToken) }
+                }
+            }
+
+            // LOG PARA IDENTIFICAR EL FCM_TOKEN
+            FirebaseMessaging.getInstance().token
+                .addOnSuccessListener { token ->
+                    Log.d("FCM_REAL", token)
+                }
+                .addOnFailureListener {
+                    Log.e("FCM_REAL", "Error obteniendo token", it)
+                }
 
             setContent {
                 BarberTheme() {
@@ -86,16 +123,57 @@ class MainActivity : ComponentActivity() {
                                 isSessionExpired = false
                                 tokenHolder.sessionExpired.value = false
                             },
+                            confirmedBookingId = confirmedBookingId,
+                            onConfirmedBookingHandled = {
+                                confirmedBookingId = null
+                                notificationEventManager.clearConfirmedEvent()
+                            },
                         )
                     }
                 }
             }
         }
 
-        // Observa expiración de JWT (401) — StateFlow garantiza que no se pierde el evento
+        // Observa expiración de JWT — desconecta WebSocket al expirar sesión
         lifecycleScope.launch {
             tokenHolder.sessionExpired.collect { expired ->
-                if (expired) isSessionExpired = true
+                if (expired) {
+                    isSessionExpired = true
+                    stompWebSocketManager.disconnect()
+                }
+            }
+        }
+
+        // Colecta notificaciones WebSocket en primer plano
+        lifecycleScope.launch {
+            stompWebSocketManager.notifications.collect { notification ->
+                val title = when (notification.status) {
+                    "CONFIRMED"  -> "Reserva Confirmada"
+                    "CANCELLED"  -> "Reserva Cancelada"
+                    "COMPLETED"  -> "Servicio Completado"
+                    "IN_PROGRESS"-> "Servicio en Progreso"
+                    else         -> "Actualización de Reserva"
+                }
+                // Notificación del sistema siempre (para cuando la app está en background)
+                NotificationHelper.showBookingStatusUpdate(
+                    context = this@MainActivity,
+                    bookingId = notification.bookingId,
+                    title = title,
+                    body = notification.message
+                )
+                // AlertDialog dentro de la app solo para CONFIRMED (sin importar la pantalla)
+                if (notification.status == "CONFIRMED") {
+                    confirmedBookingId = notification.bookingId
+                }
+            }
+        }
+
+        // Colecta eventos de confirmación provenientes de FCM (cuando WebSocket no está activo)
+        lifecycleScope.launch {
+            notificationEventManager.confirmedBookingId.collect { bookingId ->
+                if (bookingId != null) {
+                    confirmedBookingId = bookingId
+                }
             }
         }
     }
@@ -117,6 +195,8 @@ private fun MainContent(
     startDestination: Screen,
     isSessionExpired: Boolean = false,
     onSessionExpiredHandled: () -> Unit = {},
+    confirmedBookingId: Long? = null,
+    onConfirmedBookingHandled: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -253,7 +333,7 @@ private fun MainContent(
                 title = { Text("Sesión expirada", color = Color.Black, fontSize = 18.sp) },
                 text = {
                     Text(
-                        "Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente para continuar.",
+                        "Tu sesión ha expiró por inactividad. Por favor, inicia sesión nuevamente para continuar.",
                         color = Color.Black,
                         fontSize = 14.sp,
                     )
@@ -263,6 +343,28 @@ private fun MainContent(
                         showSessionExpiredDialog = false
                         onSessionExpiredHandled()
                     }) {
+                        Text("Aceptar", color = Color.Black)
+                    }
+                },
+            )
+        }
+
+        // AlertDialog global: se muestra cuando el admin confirma una reserva del cliente
+        // Aparece sin importar en qué pantalla se encuentre el usuario
+        confirmedBookingId?.let { bookingId ->
+            AlertDialog(
+                onDismissRequest = onConfirmedBookingHandled,
+                containerColor = Color.White,
+                title = { Text("Reserva Confirmada", color = Color.Black, fontSize = 18.sp) },
+                text = {
+                    Text(
+                        "Tu reserva #$bookingId fue confirmada por el administrador.",
+                        color = Color.Black,
+                        fontSize = 14.sp,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = onConfirmedBookingHandled) {
                         Text("Aceptar", color = Color.Black)
                     }
                 },

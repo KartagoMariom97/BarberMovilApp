@@ -255,7 +255,7 @@ private fun EditBarberDialog(
 
     val fechaPickerState = rememberDatePickerState()
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val generoOptions = listOf("M", "F", "Otro")
+    val generoOptions = listOf("Masculino", "Femenino", "Otro")
 
     if (showFechaPicker) {
         DatePickerDialog(
@@ -318,7 +318,7 @@ private fun EditBarberDialog(
                 item {
                     OutlinedTextField(
                         value = telefono,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 15) telefono = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 9) telefono = it },
                         label = { Text("Teléfono") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -329,7 +329,7 @@ private fun EditBarberDialog(
                 item {
                     OutlinedTextField(
                         value = dni,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 10) dni = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 8) dni = it },
                         label = { Text("DNI") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -377,7 +377,7 @@ private fun EditBarberDialog(
                 item {
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 50) password = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 15) password = it },
                         label = { Text("Nueva contraseña (dejar vacío para no cambiar)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -392,7 +392,7 @@ private fun EditBarberDialog(
                                 )
                             }
                         },
-                        supportingText = { Text("Máx. 50 caracteres") },
+                        supportingText = { Text("Máx. 15 caracteres") },
                     )
                 }
             }
@@ -439,7 +439,7 @@ private fun CreateBarberDialog(
     var submitted       by remember { mutableStateOf(false) }
     val fechaPickerState = rememberDatePickerState()
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val generoOptions = listOf("M", "F", "Otro")
+    val generoOptions = listOf("Masculino", "Femenino", "Otro")
 
     val canCreate = nombres.isNotBlank() && fechaNacimiento.isNotBlank() &&
         dni.isNotBlank() && genero.isNotBlank() && email.isNotBlank() && password.isNotBlank()
@@ -485,7 +485,7 @@ private fun CreateBarberDialog(
                     // Nombres — Máx. 100 caracteres
                     OutlinedTextField(
                         value = nombres,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 100) nombres = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 50) nombres = it },
                         label = { Text("Nombres*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -494,7 +494,7 @@ private fun CreateBarberDialog(
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                         supportingText = {
                             if (submitted && nombres.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
-                            else Text("Máx. 100 caracteres")
+                            else Text("Máx. 50 caracteres")
                         },
                     )
                 }
@@ -596,14 +596,14 @@ private fun CreateBarberDialog(
                     // Contraseña con toggle de visibilidad — Máx. 50 caracteres
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 50) password = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 20) password = it },
                         label = { Text("Contraseña*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 50 caracteres") },
+                        supportingText = { Text("Máx. 20 caracteres") },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
@@ -618,7 +618,7 @@ private fun CreateBarberDialog(
                     // Teléfono — Máx. 15 dígitos (campo opcional)
                     OutlinedTextField(
                         value = telefono,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 15) telefono = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 9) telefono = it },
                         label = { Text("Teléfono") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -634,7 +634,7 @@ private fun CreateBarberDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Activo*", style = MaterialTheme.typography.bodyMedium)
+                        Text("Activo*", style = MaterialTheme.typography.titleLarge)
                         Switch(checked = active, onCheckedChange = { active = it })
                     }
                 }

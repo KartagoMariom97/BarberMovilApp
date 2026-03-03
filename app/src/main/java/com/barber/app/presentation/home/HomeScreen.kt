@@ -42,8 +42,8 @@ import com.barber.app.presentation.components.DetailOverlay
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
 
-import com.barber.app.domain.model.Barber
-import com.barber.app.domain.model.Service
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @Composable
 fun HomeScreen(
@@ -54,10 +54,18 @@ fun HomeScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var selectedBooking by remember { mutableStateOf<Booking?>(null) }
 
+    // 🔥🔥🔥 CAMBIO PRINCIPAL
+    // Este estado controla el indicador circular de SwipeRefresh
+    val swipeRefreshState = rememberSwipeRefreshState(
+        isRefreshing = state.isLoading
+    )
+
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadData()
     }
 
+    // [FIX-4] Solo un dialog a la vez: newBookingDialog tiene prioridad sobre confirmedDialog.
+    // Los condicionales son mutuamente excluyentes (if / else if).
     // Dialog: notifica al cliente que el admin creó una reserva para él
     if (state.showNewBookingDialog && state.newAdminBookings.isNotEmpty()) {
         val booking = state.newAdminBookings.first()
@@ -89,10 +97,8 @@ fun HomeScreen(
                 }
             },
         )
-    }
-
-    // Dialog: notifica al cliente que tiene reserva(s) confirmada(s)
-    if (state.showConfirmedDialog) {
+    // [FIX-4] else if: el confirmedDialog solo se muestra si newBookingDialog no está activo
+    } else if (state.showConfirmedDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissConfirmedDialog() },
             containerColor = Color.White,
@@ -148,48 +154,60 @@ fun HomeScreen(
             Divider()
 
             // ── Lista de próximas citas (scrolleable) ────────────────────
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+
+            Box(
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (state.upcomingBookings.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Próximas citas",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                        )
+                SwipeRefresh(
+                    state = swipeRefreshState,
+                    onRefresh = {
+                        viewModel.loadData() // Se ejecuta al hacer swipe
                     }
-                    items(state.upcomingBookings) { booking ->
-                        BookingCard(
-                            booking = booking,
-                            barbers = emptyList(),
-                            services = emptyList(),
-                            clientId = 0L,
-                            showActions = false,
-                            onUpdateBooking = { _, _, _, _, _ -> },
-                            onCancel = null,
-                            onShowDetail = { selectedBooking = booking }
-                        )
-                    }
-                } else {
-                    item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
+                ){
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (state.upcomingBookings.isNotEmpty()) {
+                        item {
                             Text(
-                                text = "No tienes citas próximas",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = "Próximas citas",
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
                             )
+                        }
+                        items(state.upcomingBookings) { booking ->
+                            BookingCard(
+                                booking = booking,
+                                barbers = emptyList(),
+                                services = emptyList(),
+                                clientId = 0L,
+                                showActions = false,
+                                onUpdateBooking = { _, _, _, _, _ -> },
+                                onCancel = null,
+                                onShowDetail = { selectedBooking = booking }
+                            )
+                        }
+                    } else {
+                        item {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(
+                                    text = "No tienes citas próximas",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
 
         if (state.isLoading) {
             LoadingIndicator()

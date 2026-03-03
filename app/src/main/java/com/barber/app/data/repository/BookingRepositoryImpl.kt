@@ -4,16 +4,12 @@ import com.barber.app.core.common.Resource
 import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.data.local.dao.BookingDao
 import com.barber.app.data.local.entity.BookingEntity
-import com.barber.app.data.local.entity.toDomain
 import com.barber.app.data.remote.api.AppointmentApi
 import com.barber.app.data.remote.api.ClientApi
 import com.barber.app.data.remote.dto.CreateBookingRequest
 import com.barber.app.domain.model.Booking
 import com.barber.app.domain.repository.BookingRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -87,16 +83,8 @@ class BookingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getClientBookings(clientId: Long): Resource<List<Booking>> {
-        // Cache-first: devuelve datos locales inmediatamente
-        val cachedEntities = bookingDao.getBookingsByClient(clientId)
-        if (cachedEntities.isNotEmpty()) {
-            val cachedBookings = cachedEntities.map { entity ->
-                val details = bookingDao.getServiceDetails(entity.id)
-                entity.toDomain(details)
-            }
-            CoroutineScope(Dispatchers.IO).launch { syncBookings(clientId) }
-            return Resource.Success(cachedBookings)
-        }
+        // [FIX] Siempre va a la red: garantiza modificationUsed actualizado y todos los estados
+        // Room sigue actualizándose como write-through dentro de syncBookings
         return syncBookings(clientId)
     }
 

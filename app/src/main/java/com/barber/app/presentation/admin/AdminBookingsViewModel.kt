@@ -52,9 +52,12 @@ class AdminBookingsViewModel @Inject constructor(
     init { loadBookings() }
 
     fun loadBookings(status: String? = _state.value.statusFilter) {
+        // [FIX-2] Cuando el filtro UI es PENDING, cargamos todo del backend (status=null)
+        // para que MODIFIED_PENDING también llegue; la UI filtra localmente ambos estados.
+        val networkStatus = if (status == "PENDING") null else status
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null, statusFilter = status) }
-            when (val result = repository.getAllBookings(status = status)) {
+            when (val result = repository.getAllBookings(status = networkStatus)) {
                 is Resource.Success -> _state.update { it.copy(bookings = result.data, isLoading = false) }
                 is Resource.Error   -> _state.update { it.copy(error = result.message, isLoading = false) }
                 is Resource.Loading -> Unit
@@ -126,19 +129,16 @@ class AdminBookingsViewModel @Inject constructor(
     /** Cierra el diálogo de edición */
     fun dismissEditDialog() { _state.update { it.copy(showEditDialog = false, editingBooking = null) } }
 
-    /** Actualiza la reserva y refresca la lista */
+    /** Actualiza la reserva y recarga la lista del servidor para reflejar los cambios correctamente */
     fun updateBooking(id: Long, barberId: Long, fechaReserva: String, startTime: String, serviceIds: List<Long>) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null, showEditDialog = false, editingBooking = null) }
             when (val result = repository.updateBooking(id, barberId, fechaReserva, startTime, serviceIds)) {
                 is Resource.Success -> {
-                    _state.update { state ->
-                        state.copy(
-                            bookings = state.bookings.map { if (it.id == id) result.data else it },
-                            isLoading = false,
-                            successMessage = "Reserva actualizada exitosamente",
-                        )
-                    }
+                    // Fix: recarga del servidor para garantizar datos completos (status, servicios)
+                    // y respetar el filtro activo (ej: si hay filtro PENDING, la reserva sigue apareciendo)
+                    _state.update { it.copy(successMessage = "Reserva actualizada exitosamente") }
+                    loadBookings()
                 }
                 is Resource.Error -> _state.update { it.copy(error = result.message, isLoading = false) }
                 is Resource.Loading -> Unit

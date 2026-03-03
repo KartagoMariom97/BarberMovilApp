@@ -59,9 +59,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.Instant
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -220,8 +219,12 @@ fun RegisterScreen(
                     confirmButton = {
                         TextButton(onClick = {
                             datePickerState.selectedDateMillis?.let { millis ->
-                                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                viewModel.onFechaNacimientoChange(sdf.format(Date(millis)))
+                                // Fix UTC: Compose DatePicker devuelve millis UTC; usar ZoneOffset.UTC
+                                // evita el desfase de ±1 día que causa SimpleDateFormat con zona local
+                                val localDate = Instant.ofEpochMilli(millis)
+                                    .atZone(ZoneOffset.UTC)
+                                    .toLocalDate()
+                                viewModel.onFechaNacimientoChange(localDate.toString())
                             }
                             showDatePicker = false
                         }) { Text("Aceptar", color = Color.Black) }

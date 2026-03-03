@@ -2,7 +2,9 @@ package com.barber.app.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.room.withTransaction
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.barber.app.data.local.dao.BarberDao
 import com.barber.app.data.local.dao.BookingDao
 import com.barber.app.data.local.dao.ServiceDao
@@ -18,13 +20,22 @@ import com.barber.app.data.local.entity.ServiceEntity
         BookingEntity::class,
         BookingServiceDetailEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class BarberDatabase : RoomDatabase() {
     abstract fun barberDao(): BarberDao
     abstract fun serviceDao(): ServiceDao
     abstract fun bookingDao(): BookingDao
+
+    companion object {
+        // Migración v1→v2: agrega modification_used — flag único de modificación por cliente
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE bookings ADD COLUMN modificationUsed INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+    }
 
     /**
      * 🔥 Limpia completamente todas las tablas de la base de datos.

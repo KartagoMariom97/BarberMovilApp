@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.barber.app.core.common.Resource
 import com.barber.app.core.datastore.UserPreferences
 import com.barber.app.core.datastore.UserPreferencesRepository
+import com.barber.app.core.websocket.StompWebSocketManager
 import com.barber.app.domain.model.Booking
 import com.barber.app.domain.usecase.GetClientBookingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 data class HomeState(
@@ -32,6 +35,8 @@ data class HomeState(
 class HomeViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val getClientBookingsUseCase: GetClientBookingsUseCase,
+    // [FIX-5] Inyectado para escuchar cambios en tiempo real vía WebSocket
+    private val stompWebSocketManager: StompWebSocketManager,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -42,6 +47,10 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadData()
+        // [FIX-5] Recarga silenciosa cuando llega una notificación WebSocket de cambio de estado
+        viewModelScope.launch {
+            stompWebSocketManager.notifications.collect { loadData() }
+        }
     }
 
     fun clearError() {
@@ -71,13 +80,28 @@ class HomeViewModel @Inject constructor(
             if (prefs.clientId > 0) {
                 when (val result = getClientBookingsUseCase(prefs.clientId)) {
                     is Resource.Success -> {
-                        val upcoming = result.data.filter {
-                            it.status.uppercase() in listOf("PENDING", "CONFIRMED")
+                        // [FIX-4] Incluye MODIFIED_PENDING y limita a reservas de las próximas 24h
+                        val now   = LocalDateTime.now()
+                        val limit = now.plusHours(24)
+                        val dtFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                        val upcoming = result.data.filter { booking ->
+                            val status = booking.status.uppercase()
+                            if (status !in listOf("PENDING", "CONFIRMED", "MODIFIED_PENDING")) return@filter false
+                            runCatching {
+                                val dt = LocalDateTime.parse(
+                                    "${booking.fechaReserva} ${booking.startTime.take(5)}", dtFmt
+                                )
+                                dt.isAfter(now) && dt.isBefore(limit)
+                            }.getOrDefault(true) // si no puede parsear, incluye para no perder datos
                         }
                         val confirmed = result.data.filter { it.status.uppercase() == "CONFIRMED" }
                         // Muestra el dialog de confirmación solo la primera vez que se detectan reservas confirmadas
                         val showDialog = confirmed.isNotEmpty() && !confirmedDialogShown
                         if (showDialog) confirmedDialogShown = true
+
+                        // [FIX-4] No cerrar el dialog si ya está visible: loadData se llama múltiples
+                        // veces (WebSocket, ON_RESUME). Si showConfirmedDialog ya es true, no se
+                        // sobrescribe con false — solo dismissConfirmedDialog() lo puede cerrar.
 
                         // Detectar reservas nuevas no vistas (creadas por el admin)
                         // 🔥🔥🔥 CAMBIO IMPORTANTE AQUÍ
@@ -104,7 +128,9 @@ class HomeViewModel @Inject constructor(
                             upcomingBookings = upcoming,
                             isLoading = false,
                             confirmedCount = confirmed.size,
-                            showConfirmedDialog = showDialog,
+                            // [FIX-4] OR con el estado actual: si el dialog ya estaba visible,
+                            // no se cierra solo por un reload. Solo dismissConfirmedDialog() lo cierra.
+                            showConfirmedDialog = _state.value.showConfirmedDialog || showDialog,
                             newAdminBookings = newBookings,
                             showNewBookingDialog = newBookings.isNotEmpty(),
                         )

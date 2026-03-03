@@ -8,6 +8,7 @@ import com.barber.app.data.repository.AuthRepositoryImpl
 import com.barber.app.data.repository.BarberRepositoryImpl
 import com.barber.app.data.repository.BookingRepositoryImpl
 import com.barber.app.data.repository.ClientRepositoryImpl
+import com.barber.app.data.repository.NotificationRepositoryImpl
 import com.barber.app.data.repository.ServiceRepositoryImpl
 import com.barber.app.domain.repository.AdminBarberRepository
 import com.barber.app.domain.repository.AdminBookingRepository
@@ -17,6 +18,7 @@ import com.barber.app.domain.repository.AuthRepository
 import com.barber.app.domain.repository.BarberRepository
 import com.barber.app.domain.repository.BookingRepository
 import com.barber.app.domain.repository.ClientRepository
+import com.barber.app.domain.repository.NotificationRepository
 import com.barber.app.domain.repository.ServiceRepository
 import dagger.Binds
 import dagger.Module
@@ -63,4 +65,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAdminBookingRepository(impl: AdminBookingRepositoryImpl): AdminBookingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationRepository(impl: NotificationRepositoryImpl): NotificationRepository
 }

@@ -99,6 +99,16 @@ class AuthRepositoryImpl @Inject constructor(
             val msg = when (e.code()) {
                 400 -> "Credenciales inválidas."
                 401 -> "No autorizado."
+                // 403: cuenta deshabilitada — parsea el JSON del backend para obtener el mensaje
+                403 -> {
+                    val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+                    try {
+                        com.google.gson.JsonParser.parseString(body).asJsonObject.get("message")?.asString
+                            ?: "Tu cuenta ha sido deshabilitada. Comunícate con el administrador."
+                    } catch (_: Exception) {
+                        "Tu cuenta ha sido deshabilitada. Comunícate con el administrador."
+                    }
+                }
                 404 -> "No se encontró usuario con ese email."
                 else -> "Error del servidor (${e.code()})"
             }

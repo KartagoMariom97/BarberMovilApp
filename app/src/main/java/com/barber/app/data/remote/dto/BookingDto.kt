@@ -39,6 +39,7 @@ data class BookingWithServicesResponse(
     @SerializedName("status") val status: String?,
     @SerializedName("startTime") val startTime: String?,
     @SerializedName("createdAt") val createdAt: String?,
+    @SerializedName("modificationUsed") val modificationUsed: Boolean?,
     @SerializedName("services") val services: List<BookingServiceDetailResponse>?,
 ) {
     fun toDomain() = Booking(
@@ -49,6 +50,7 @@ data class BookingWithServicesResponse(
         status = status ?: "",
         startTime = startTime ?: "",
         createdAt = createdAt,
+        modificationUsed = modificationUsed ?: false,
         services = services?.map { it.toDomain() } ?: emptyList(),
     )
 }
@@ -61,6 +63,7 @@ data class BookingDetailResponse(
     @SerializedName("status") val status: String?,
     @SerializedName("startTime") val startTime: String?,
     @SerializedName("endTime") val endTime: String?,
+    @SerializedName("modificationUsed") val modificationUsed: Boolean?,
     @SerializedName("services") val services: List<BookingServiceDetailResponse>?,
 ) {
     fun toDomain() = Booking(
@@ -71,6 +74,7 @@ data class BookingDetailResponse(
         status = status ?: "",
         startTime = startTime ?: "",
         endTime = endTime,
+        modificationUsed = modificationUsed ?: false,
         services = services?.map { it.toDomain() } ?: emptyList(),
     )
 
@@ -84,6 +88,7 @@ data class BookingDetailResponse(
         startTime = startTime ?: "",
         endTime = endTime,
         createdAt = null,
+        modificationUsed = modificationUsed ?: false,
     )
 
     fun serviceEntities(): List<BookingServiceDetailEntity> =
