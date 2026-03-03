@@ -234,8 +234,12 @@ fun BookingCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Indicador visual (no botón): el cliente ya usó su única modificación
-                if (booking.modificationUsed) {
+                // Indicador visual: solo en estados activos donde el usuario podría intentar editar
+                // Oculto en MODIFIED_PENDING, MODIFIED_CONFIRMED, CANCELLED y COMPLETED
+                val showModifiedIndicator = booking.modificationUsed
+                    && booking.status.uppercase() !in listOf("MODIFIED_PENDING", "CANCELLED", "COMPLETED")
+                    && !isModifiedConfirmed
+                if (showModifiedIndicator) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "Reserva ya modificada",
