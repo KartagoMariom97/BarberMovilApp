@@ -47,9 +47,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.ui.window.Dialog
+
+// Convierte minutos totales a "Xh Ymin" / "Xh" / "Y min"
+private fun formatDuration(totalMinutes: Int): String {
+    val hours = totalMinutes / 60
+    val mins  = totalMinutes % 60
+    return when {
+        hours == 0 -> "$mins min"
+        mins  == 0 -> "${hours}h"
+        else       -> "${hours}h ${mins}min"
+    }
+}
 
 private fun formatTimeDisplay(time: String): String {
     if (time.isBlank()) return time
@@ -217,14 +227,24 @@ fun BookingCard(
                         BookingServiceChip(name = svc.name)
                     }
                 }
+                val totalMinutes = booking.services.sumOf { it.minutes }
                 val total = booking.services.sumOf { it.price.toDouble() }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    "Total: S/ ${"%.2f".format(total)}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("Duración:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BookingServiceChip(name = formatDuration(totalMinutes))
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("Total:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BookingServiceChip(name = "S/ ${"%.2f".format(total)}")
+                }
             }
 
             Row(
@@ -416,13 +436,24 @@ fun BookingDetailContent(booking: Booking) {
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
+        val totalMinutes = booking.services.sumOf { it.minutes }
         val total = booking.services.sumOf { it.price.toDouble() }
-        // [CAMBIO] texto del total negro absoluto y bodyLarge para mayor legibilidad
-        Text(
-            "Total: S/ ${"%.2f".format(total)}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.Black,
-            fontWeight = FontWeight.Bold,
-        )
+        // Duración estimada como chip
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Duración:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
+            BookingServiceChip(name = formatDuration(totalMinutes))
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        // Precio total como chip
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Total:", style = MaterialTheme.typography.bodyMedium, color = darkText, fontWeight = FontWeight.Bold)
+            BookingServiceChip(name = "S/ ${"%.2f".format(total)}")
+        }
     }
 }

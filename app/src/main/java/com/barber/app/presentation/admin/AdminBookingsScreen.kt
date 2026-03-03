@@ -110,6 +110,22 @@ private val nextStatusOptions: Map<String, List<Pair<String, String>>> = mapOf(
     "IN_PROGRESS"      to listOf("COMPLETED" to "Completar"),
 )
 
+// Convierte "HH:mm:ss" o "HH:mm" a formato 12h con AM/PM
+private fun formatTimeDisplay(time: String): String {
+    if (time.isBlank()) return time
+    val parts = time.split(":")
+    if (parts.size < 2) return time
+    val hour = parts[0].toIntOrNull() ?: return time
+    val minute = parts[1]
+    val amPm = if (hour < 12) "AM" else "PM"
+    val displayHour = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else      -> hour
+    }
+    return "$displayHour:$minute $amPm"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminBookingsScreen(
@@ -918,7 +934,7 @@ private fun AdminBookingCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    BookingInfoChip(booking.startTime)
+                    BookingInfoChip(formatTimeDisplay(booking.startTime))
                 }
             }
 
