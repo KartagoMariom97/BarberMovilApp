@@ -14,8 +14,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,6 +29,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -56,7 +60,8 @@ fun AdminServicesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var editingService by remember { mutableStateOf<Service?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
-    var deletingServiceId by remember { mutableStateOf<Long?>(null) }
+    // Soft delete: confirmar desactivación (ya no eliminación física)
+    var deactivatingServiceId by remember { mutableStateOf<Long?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var successDialogMessage by remember { mutableStateOf("") }
 
@@ -97,7 +102,10 @@ fun AdminServicesScreen(
                         ServiceAdminCard(
                             service = service,
                             onEdit = { editingService = service },
-                            onDelete = { deletingServiceId = service.id },
+                            // Pide confirmación antes de desactivar
+                            onDeactivate = { deactivatingServiceId = service.id },
+                            // Activa directamente sin confirmación
+                            onActivate = { viewModel.activateService(service.id) },
                         )
                     }
                     item { Spacer(modifier = Modifier.height(80.dp)) }
@@ -149,20 +157,21 @@ fun AdminServicesScreen(
         )
     }
 
-    deletingServiceId?.let { id ->
+    // Diálogo de confirmación de desactivación (soft delete)
+    deactivatingServiceId?.let { id ->
         AlertDialog(
-            onDismissRequest = { deletingServiceId = null },
+            onDismissRequest = { deactivatingServiceId = null },
             containerColor = Color.White,
-            title = { Text("Eliminar servicio", color = Color.Black) },
-            text = { Text("¿Estás seguro de que deseas eliminar este servicio?", color = Color.Black) },
+            title = { Text("Desactivar servicio", color = Color.Black) },
+            text = { Text("El servicio quedará inactivo y no podrá usarse en nuevas reservas. El historial existente se conserva.", color = Color.Black) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteService(id)
-                    deletingServiceId = null
-                }) { Text("Eliminar", color = Color(0xFFE53935)) }
+                    viewModel.deactivateService(id)
+                    deactivatingServiceId = null
+                }) { Text("Desactivar", color = Color(0xFFE53935)) }
             },
             dismissButton = {
-                TextButton(onClick = { deletingServiceId = null }) { Text("Cancelar", color = Color.Black) }
+                TextButton(onClick = { deactivatingServiceId = null }) { Text("Cancelar", color = Color.Black) }
             },
         )
     }
@@ -186,11 +195,14 @@ fun AdminServicesScreen(
 private fun ServiceAdminCard(
     service: Service,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    onDeactivate: () -> Unit,
+    onActivate: () -> Unit,
 ) {
+    // Tarjeta visualmente atenuada cuando el servicio está inactivo
+    val cardAlpha = if (service.active) 1f else 0.6f
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = cardAlpha)),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (service.active) 4.dp else 1.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -199,25 +211,44 @@ private fun ServiceAdminCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(service.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(service.name, style = MaterialTheme.typography.titleLarge)
+                    // Chip de estado: muestra "INACTIVO" si el servicio está desactivado
+                    if (!service.active) {
+                        SuggestionChip(
+                            onClick = {},
+                            label = { Text("INACTIVO", style = MaterialTheme.typography.labelSmall) },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = Color(0xFFFFEBEE),
+                                labelColor = Color(0xFFE53935),
+                            ),
+                        )
+                    }
+                }
                 IconButton(onClick = onEdit) {
                     Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFFFC107))
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFE53935))
+                // Botón toggle: desactivar si activo, activar si inactivo
+                if (service.active) {
+                    IconButton(onClick = onDeactivate) {
+                        Icon(Icons.Default.Delete, contentDescription = "Desactivar", tint = Color(0xFFE53935))
+                    }
+                } else {
+                    IconButton(onClick = onActivate) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = "Activar", tint = Color(0xFF4CAF50))
+                    }
                 }
             }
             if (service.description.isNotBlank()) {
                 Text(service.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(modifier = Modifier.height(20.dp))
-            
+
             Text("Duracion : ${service.estimatedMinutes} min", style = MaterialTheme.typography.bodySmall)
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text("Total: S/ ${service.price}", style = MaterialTheme.typography.bodySmall, color = Color.Black)
-            
         }
     }
 }

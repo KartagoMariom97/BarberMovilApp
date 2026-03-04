@@ -8,4 +8,5 @@ data class Service(
     val description: String,
     val estimatedMinutes: Int,
     val price: BigDecimal,
+    val active: Boolean = true, // soft delete: false = servicio desactivado
 )

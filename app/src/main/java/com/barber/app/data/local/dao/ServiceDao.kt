@@ -8,7 +8,8 @@ import com.barber.app.data.local.entity.ServiceEntity
 @Dao
 interface ServiceDao {
 
-    @Query("SELECT * FROM services")
+    // Solo devuelve servicios activos para uso público (soft-deleted excluidos)
+    @Query("SELECT * FROM services WHERE active = 1")
     suspend fun getAllServices(): List<ServiceEntity>
 
     @Upsert

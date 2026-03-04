@@ -1,5 +1,6 @@
 package com.barber.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.barber.app.domain.model.Service
@@ -12,6 +13,7 @@ data class ServiceEntity(
     val description: String?,
     val estimatedMinutes: Int,
     val price: String,      // BigDecimal almacenado como String
+    @ColumnInfo(defaultValue = "1") val active: Boolean = true, // v3: soft delete
     val createdAt: String?,
     val updatedAt: String?,
 )
@@ -22,4 +24,5 @@ fun ServiceEntity.toDomain() = Service(
     description = description ?: "",
     estimatedMinutes = estimatedMinutes,
     price = try { BigDecimal(price) } catch (_: Exception) { BigDecimal.ZERO },
+    active = active,
 )

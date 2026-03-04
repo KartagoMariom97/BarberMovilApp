@@ -11,6 +11,7 @@ data class ServiceResponse(
     @SerializedName("description") val description: String?,
     @SerializedName("estimatedMinutes") val estimatedMinutes: Int,
     @SerializedName("price") val price: BigDecimal,
+    @SerializedName("active") val active: Boolean = true, // soft delete field
     @SerializedName("createdAt") val createdAt: String?,
     @SerializedName("updatedAt") val updatedAt: String?,
 ) {
@@ -20,6 +21,7 @@ data class ServiceResponse(
         description = description ?: "",
         estimatedMinutes = estimatedMinutes,
         price = price,
+        active = active,
     )
 
     fun toEntity() = ServiceEntity(
@@ -28,6 +30,7 @@ data class ServiceResponse(
         description = description,
         estimatedMinutes = estimatedMinutes,
         price = price.toPlainString(),
+        active = active,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

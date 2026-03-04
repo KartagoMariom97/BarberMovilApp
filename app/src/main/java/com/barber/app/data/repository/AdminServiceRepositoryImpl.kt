@@ -64,12 +64,21 @@ class AdminServiceRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteService(id: Long): Resource<Unit> {
+    override suspend fun deactivateService(id: Long): Resource<Service> {
         return try {
-            api.deleteService(id)
-            Resource.Success(Unit)
+            // Soft delete: backend marca active = false, preserva historial
+            Resource.Success(api.deactivateService(id).toDomain())
         } catch (e: Exception) {
-            Resource.Error(mapError(e, "Error al eliminar el servicio"))
+            Resource.Error(mapError(e, "Error al desactivar el servicio"))
+        }
+    }
+
+    override suspend fun activateService(id: Long): Resource<Service> {
+        return try {
+            // Reactivar servicio previamente desactivado
+            Resource.Success(api.activateService(id).toDomain())
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al activar el servicio"))
         }
     }
 }

@@ -20,7 +20,7 @@ import com.barber.app.data.local.entity.ServiceEntity
         BookingEntity::class,
         BookingServiceDetailEntity::class,
     ],
-    version = 2,
+    version = 3, // v3: agrega columna active en services (soft delete)
     exportSchema = false,
 )
 abstract class BarberDatabase : RoomDatabase() {
@@ -33,6 +33,13 @@ abstract class BarberDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE bookings ADD COLUMN modificationUsed INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // Migración v2→v3: agrega active en services (soft delete — preserva historial)
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE services ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

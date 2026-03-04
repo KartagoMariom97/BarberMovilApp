@@ -80,16 +80,38 @@ class AdminServicesViewModel @Inject constructor(
         }
     }
 
-    fun deleteService(id: Long) {
+    // Reemplaza delete físico: desactiva el servicio (soft delete)
+    fun deactivateService(id: Long) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            when (val result = repository.deleteService(id)) {
+            when (val result = repository.deactivateService(id)) {
                 is Resource.Success -> {
                     _state.update { state ->
+                        // Actualiza el servicio en la lista con active = false
                         state.copy(
-                            services = state.services.filter { it.id != id },
+                            services = state.services.map { if (it.id == id) result.data else it },
                             isLoading = false,
-                            successMessage = "Servicio eliminado",
+                            successMessage = "Servicio desactivado",
+                        )
+                    }
+                }
+                is Resource.Error -> _state.update { it.copy(error = result.message, isLoading = false) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun activateService(id: Long) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            when (val result = repository.activateService(id)) {
+                is Resource.Success -> {
+                    _state.update { state ->
+                        // Actualiza el servicio en la lista con active = true
+                        state.copy(
+                            services = state.services.map { if (it.id == id) result.data else it },
+                            isLoading = false,
+                            successMessage = "Servicio activado",
                         )
                     }
                 }
