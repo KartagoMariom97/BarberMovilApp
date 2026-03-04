@@ -44,9 +44,9 @@ class BarberFirebaseMessagingService : FirebaseMessagingService() {
         // background/killed es manejado automáticamente por FCM SDK)
         NotificationHelper.showBookingStatusUpdate(applicationContext, bookingId, title, body)
 
-        // Si la reserva fue confirmada, señalizar para mostrar AlertDialog en la app
+        // Si la reserva fue confirmada, emitir evento al dialog global (count=1: una confirmación)
         if (status == "CONFIRMED" && type == "STATUS_CHANGED") {
-            notificationEventManager.onBookingConfirmed(bookingId)
+            notificationEventManager.onBookingConfirmed(count = 1)
         }
     }
 

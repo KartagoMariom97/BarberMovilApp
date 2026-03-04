@@ -3,11 +3,11 @@ package com.barber.app.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.barber.app.core.common.Resource
-import com.barber.app.core.datastore.UserPreferences
 import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.core.websocket.StompWebSocketManager
 import com.barber.app.domain.model.Booking
 import com.barber.app.domain.usecase.GetClientBookingsUseCase
+import com.barber.app.service.NotificationEventManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,9 +23,6 @@ data class HomeState(
     val upcomingBookings: List<Booking> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    /** Cantidad de reservas confirmadas detectadas al cargar — activa el dialog de notificación */
-    val confirmedCount: Int = 0,
-    val showConfirmedDialog: Boolean = false,
     /** Reservas nuevas no vistas (creadas por el admin) — activa el dialog de nueva reserva */
     val newAdminBookings: List<Booking> = emptyList(),
     val showNewBookingDialog: Boolean = false,
@@ -37,13 +34,15 @@ class HomeViewModel @Inject constructor(
     private val getClientBookingsUseCase: GetClientBookingsUseCase,
     // [FIX-5] Inyectado para escuchar cambios en tiempo real vía WebSocket
     private val stompWebSocketManager: StompWebSocketManager,
+    // Canal global para propagar eventos de confirmación al dialog raíz en MainActivity
+    private val notificationEventManager: NotificationEventManager,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
-    // Flag para mostrar el dialog de confirmación solo una vez por sesión
-    private var confirmedDialogShown = false
+    // IDs de reservas confirmadas ya notificadas en esta sesión (evita re-mostrar en recargas)
+    private val notifiedConfirmedIds = mutableSetOf<Long>()
 
     init {
         loadData()
@@ -55,11 +54,6 @@ class HomeViewModel @Inject constructor(
 
     fun clearError() {
         _state.value = _state.value.copy(error = null)
-    }
-
-    /** Cierra el dialog de reserva confirmada */
-    fun dismissConfirmedDialog() {
-        _state.value = _state.value.copy(showConfirmedDialog = false)
     }
 
     /** Cierra el dialog de nueva reserva del admin y marca esas reservas como vistas */
@@ -95,13 +89,15 @@ class HomeViewModel @Inject constructor(
                             }.getOrDefault(true) // si no puede parsear, incluye para no perder datos
                         }
                         val confirmed = result.data.filter { it.status.uppercase() == "CONFIRMED" }
-                        // Muestra el dialog de confirmación solo la primera vez que se detectan reservas confirmadas
-                        val showDialog = confirmed.isNotEmpty() && !confirmedDialogShown
-                        if (showDialog) confirmedDialogShown = true
-
-                        // [FIX-4] No cerrar el dialog si ya está visible: loadData se llama múltiples
-                        // veces (WebSocket, ON_RESUME). Si showConfirmedDialog ya es true, no se
-                        // sobrescribe con false — solo dismissConfirmedDialog() lo puede cerrar.
+                        // Detectar confirmaciones nuevas (no notificadas en esta sesión)
+                        val newConfirmed = confirmed.filter { it.id !in notifiedConfirmedIds }
+                        // Emitir al dialog global solo si hay nuevas y no hay evento FCM ya activo
+                        // (evita doble dialog cuando FCM llega en background y luego loadData recarga)
+                        if (newConfirmed.isNotEmpty() && notificationEventManager.confirmedCount.value == 0) {
+                            notificationEventManager.onBookingConfirmed(count = newConfirmed.size)
+                        }
+                        // Registrar todos los IDs confirmados para no re-notificar en recargas
+                        notifiedConfirmedIds.addAll(confirmed.map { it.id })
 
                         // Detectar reservas nuevas no vistas (creadas por el admin)
                         // 🔥🔥🔥 CAMBIO IMPORTANTE AQUÍ
@@ -127,10 +123,6 @@ class HomeViewModel @Inject constructor(
                         _state.value = _state.value.copy(
                             upcomingBookings = upcoming,
                             isLoading = false,
-                            confirmedCount = confirmed.size,
-                            // [FIX-4] OR con el estado actual: si el dialog ya estaba visible,
-                            // no se cierra solo por un reload. Solo dismissConfirmedDialog() lo cierra.
-                            showConfirmedDialog = _state.value.showConfirmedDialog || showDialog,
                             newAdminBookings = newBookings,
                             showNewBookingDialog = newBookings.isNotEmpty(),
                         )

@@ -64,8 +64,6 @@ fun HomeScreen(
         viewModel.loadData()
     }
 
-    // [FIX-4] Solo un dialog a la vez: newBookingDialog tiene prioridad sobre confirmedDialog.
-    // Los condicionales son mutuamente excluyentes (if / else if).
     // Dialog: notifica al cliente que el admin creó una reserva para él
     if (state.showNewBookingDialog && state.newAdminBookings.isNotEmpty()) {
         val booking = state.newAdminBookings.first()
@@ -93,24 +91,6 @@ fun HomeScreen(
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.dismissNewBookingDialog() }) {
-                    Text("Aceptar", color = Color.Black)
-                }
-            },
-        )
-    // [FIX-4] else if: el confirmedDialog solo se muestra si newBookingDialog no está activo
-    } else if (state.showConfirmedDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissConfirmedDialog() },
-            containerColor = Color.White,
-            title = { Text("¡Reserva Confirmada!", color = Color.Black) },
-            text = {
-                Text(
-                    "Se confirmó tu reserva. Tienes ${state.confirmedCount} reserva(s) confirmada(s).",
-                    color = Color.Black,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.dismissConfirmedDialog() }) {
                     Text("Aceptar", color = Color.Black)
                 }
             },

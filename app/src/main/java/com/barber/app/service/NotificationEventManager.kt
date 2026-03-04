@@ -6,20 +6,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// Contenedor singleton que transporta eventos de notificación FCM hacia MainActivity
-// sin acoplamiento directo entre BarberFirebaseMessagingService y la UI
+// Singleton que transporta eventos de confirmación de reservas hacia MainActivity
+// sin acoplamiento entre BarberFirebaseMessagingService/HomeViewModel y la UI raíz
 @Singleton
 class NotificationEventManager @Inject constructor() {
 
-    // bookingId de la reserva confirmada; null cuando no hay evento pendiente
-    private val _confirmedBookingId = MutableStateFlow<Long?>(null)
-    val confirmedBookingId: StateFlow<Long?> = _confirmedBookingId.asStateFlow()
+    // Cantidad de reservas confirmadas pendientes de notificar; 0 = sin evento activo
+    private val _confirmedCount = MutableStateFlow(0)
+    val confirmedCount: StateFlow<Int> = _confirmedCount.asStateFlow()
 
-    fun onBookingConfirmed(bookingId: Long) {
-        _confirmedBookingId.value = bookingId
+    // Emite evento con el número de reservas confirmadas (default 1 para eventos FCM individuales)
+    fun onBookingConfirmed(count: Int = 1) {
+        _confirmedCount.value = count
     }
 
+    // Consume el evento tras ser aceptado por el usuario (dismiss del dialog global)
     fun clearConfirmedEvent() {
-        _confirmedBookingId.value = null
+        _confirmedCount.value = 0
     }
 }

@@ -74,8 +74,8 @@ class MainActivity : ComponentActivity() {
     /** true cuando el 401 de JWT expira — activa diálogo y redirección al login */
     private var isSessionExpired by mutableStateOf(false)
 
-    /** bookingId de la reserva recién confirmada; null cuando no hay evento pendiente */
-    private var confirmedBookingId by mutableStateOf<Long?>(null)
+    /** Cantidad de reservas confirmadas pendientes de notificar; 0 = sin evento activo */
+    private var confirmedCount by mutableStateOf(0)
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -130,9 +130,8 @@ class MainActivity : ComponentActivity() {
                                 isSessionExpired = false
                                 tokenHolder.sessionExpired.value = false
                             },
-                            confirmedBookingId = confirmedBookingId,
+                            confirmedCount = confirmedCount,
                             onConfirmedBookingHandled = {
-                                confirmedBookingId = null
                                 notificationEventManager.clearConfirmedEvent()
                             },
                         )
@@ -168,19 +167,14 @@ class MainActivity : ComponentActivity() {
                     title = title,
                     body = notification.message
                 )
-                // AlertDialog dentro de la app solo para CONFIRMED (sin importar la pantalla)
-                if (notification.status == "CONFIRMED") {
-                    confirmedBookingId = notification.bookingId
-                }
+                // El dialog de confirmación es emitido por HomeViewModel vía NotificationEventManager
             }
         }
 
-        // Colecta eventos de confirmación provenientes de FCM (cuando WebSocket no está activo)
+        // Colecta el conteo de confirmaciones desde NotificationEventManager (FCM + HomeViewModel)
         lifecycleScope.launch {
-            notificationEventManager.confirmedBookingId.collect { bookingId ->
-                if (bookingId != null) {
-                    confirmedBookingId = bookingId
-                }
+            notificationEventManager.confirmedCount.collect { count ->
+                confirmedCount = count
             }
         }
     }
@@ -202,7 +196,7 @@ private fun MainContent(
     startDestination: Screen,
     isSessionExpired: Boolean = false,
     onSessionExpiredHandled: () -> Unit = {},
-    confirmedBookingId: Long? = null,
+    confirmedCount: Int = 0,
     onConfirmedBookingHandled: () -> Unit = {},
 ) {
     val navController = rememberNavController()
@@ -356,16 +350,16 @@ private fun MainContent(
             )
         }
 
-        // AlertDialog global: se muestra cuando el admin confirma una reserva del cliente
-        // Aparece sin importar en qué pantalla se encuentre el usuario
-        confirmedBookingId?.let { bookingId ->
+        // Dialog global de reserva confirmada — aparece en cualquier pantalla
+        // Mensaje unificado: centralizado aquí para evitar duplicidad con HomeScreen
+        if (confirmedCount > 0) {
             AlertDialog(
                 onDismissRequest = onConfirmedBookingHandled,
                 containerColor = Color.White,
-                title = { Text("Reserva Confirmada", color = Color.Black, fontSize = 18.sp) },
+                title = { Text("¡Reserva Confirmada!", color = Color.Black, fontSize = 18.sp) },
                 text = {
                     Text(
-                        "Tu reserva #$bookingId fue confirmada por el administrador.",
+                        "Se confirmó tu reserva. Tienes $confirmedCount reserva(s) confirmada(s).",
                         color = Color.Black,
                         fontSize = 14.sp,
                     )
