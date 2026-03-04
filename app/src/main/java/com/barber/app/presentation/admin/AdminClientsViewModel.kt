@@ -16,6 +16,8 @@ import javax.inject.Inject
 data class AdminClientsState(
     val clients: List<AdminClient> = emptyList(),
     val isLoading: Boolean = false,
+    // Indica que se está refrescando via pull-to-refresh
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
     /** Controla visibilidad del diálogo de creación de cliente */
@@ -104,6 +106,18 @@ class AdminClientsViewModel @Inject constructor(
                     )
                 }
                 is Resource.Error   -> _state.update { it.copy(error = result.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    /** Pull-to-refresh: recarga sin loading indicator de pantalla completa */
+    fun refresh() {
+        viewModelScope.launch {
+            _state.update { it.copy(isRefreshing = true) }
+            when (val result = repository.getAllClients()) {
+                is Resource.Success -> _state.update { it.copy(clients = result.data, isRefreshing = false) }
+                is Resource.Error   -> _state.update { it.copy(error = result.message, isRefreshing = false) }
                 is Resource.Loading -> Unit
             }
         }

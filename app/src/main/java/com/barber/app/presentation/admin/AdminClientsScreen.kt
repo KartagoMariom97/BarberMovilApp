@@ -61,6 +61,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.barber.app.domain.model.AdminClient
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
@@ -82,6 +84,7 @@ fun AdminClientsScreen(
     var editingClient by remember { mutableStateOf<AdminClient?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var successDialogMessage by remember { mutableStateOf("") }
+    val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
 
     LaunchedEffect(state.successMessage) {
         if (state.successMessage != null) {
@@ -108,31 +111,36 @@ fun AdminClientsScreen(
             }
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (state.isLoading) {
-                LoadingIndicator()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-                    items(state.clients) { client ->
-                        ClientAdminCard(
-                            client = client,
-                            onEdit = { editingClient = client },
-                            onToggleStatus = { active -> viewModel.toggleClientStatus(client.codigoCliente, active) },
-                        )
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = { viewModel.refresh() },
+        ) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (state.isLoading) {
+                    LoadingIndicator()
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                        items(state.clients) { client ->
+                            ClientAdminCard(
+                                client = client,
+                                onEdit = { editingClient = client },
+                                onToggleStatus = { active -> viewModel.toggleClientStatus(client.codigoCliente, active) },
+                            )
+                        }
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
                 }
-            }
 
-            ErrorOverlay(
-                message = state.error ?: "",
-                visible = state.error != null,
-                onDismiss = viewModel::clearError,
-            )
+                ErrorOverlay(
+                    message = state.error ?: "",
+                    visible = state.error != null,
+                    onDismiss = viewModel::clearError,
+                )
+            }
         }
     }
 

@@ -46,6 +46,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.barber.app.domain.model.Service
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
@@ -60,6 +62,7 @@ fun AdminServicesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var editingService by remember { mutableStateOf<Service?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
+    val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
     // Soft delete: confirmar desactivación (ya no eliminación física)
     var deactivatingServiceId by remember { mutableStateOf<Long?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -89,34 +92,39 @@ fun AdminServicesScreen(
             }
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (state.isLoading) {
-                LoadingIndicator()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-                    items(state.services) { service ->
-                        ServiceAdminCard(
-                            service = service,
-                            onEdit = { editingService = service },
-                            // Pide confirmación antes de desactivar
-                            onDeactivate = { deactivatingServiceId = service.id },
-                            // Activa directamente sin confirmación
-                            onActivate = { viewModel.activateService(service.id) },
-                        )
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = { viewModel.refresh() },
+        ) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (state.isLoading) {
+                    LoadingIndicator()
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                        items(state.services) { service ->
+                            ServiceAdminCard(
+                                service = service,
+                                onEdit = { editingService = service },
+                                // Pide confirmación antes de desactivar
+                                onDeactivate = { deactivatingServiceId = service.id },
+                                // Activa directamente sin confirmación
+                                onActivate = { viewModel.activateService(service.id) },
+                            )
+                        }
+                        item { Spacer(modifier = Modifier.height(80.dp)) }
                     }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
-            }
 
-            ErrorOverlay(
-                message = state.error ?: "",
-                visible = state.error != null,
-                onDismiss = viewModel::clearError,
-            )
+                ErrorOverlay(
+                    message = state.error ?: "",
+                    visible = state.error != null,
+                    onDismiss = viewModel::clearError,
+                )
+            }
         }
     }
 

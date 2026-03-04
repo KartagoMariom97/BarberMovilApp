@@ -24,6 +24,8 @@ data class AdminBookingsState(
     val bookings: List<AdminBooking> = emptyList(),
     val statusFilter: String? = null,
     val isLoading: Boolean = false,
+    // Indica que se está refrescando via pull-to-refresh (sin loading indicator de pantalla completa)
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
     /** Controla visibilidad del diálogo de creación */
@@ -83,6 +85,20 @@ class AdminBookingsViewModel @Inject constructor(
     }
 
     fun setFilter(status: String?) { loadBookings(status) }
+
+    /** Pull-to-refresh: recarga sin loading indicator de pantalla completa; solo disponible en filtro "Todos" */
+    fun refresh() {
+        viewModelScope.launch {
+            _state.update { it.copy(isRefreshing = true) }
+            when (val result = repository.getAllBookings(status = null)) {
+                is Resource.Success -> _state.update {
+                    it.copy(bookings = result.data, isRefreshing = false, statusFilter = null)
+                }
+                is Resource.Error   -> _state.update { it.copy(error = result.message, isRefreshing = false) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
 
     /** Abre el diálogo y carga clientes, barberos y servicios (solo si la lista está vacía) */
     fun showCreateDialog() {

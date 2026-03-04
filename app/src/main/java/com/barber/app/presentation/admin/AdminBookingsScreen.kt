@@ -78,6 +78,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.barber.app.domain.model.AdminBarber
 import com.barber.app.domain.model.AdminBooking
 import com.barber.app.domain.model.AdminClient
@@ -134,6 +136,8 @@ fun AdminBookingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var changeStatusTarget by remember { mutableStateOf<Pair<AdminBooking, String>?>(null) }
+    // SwipeRefresh: solo activo en filtro "Todos" (statusFilter == null)
+    val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
 
     if (state.isLoading) LoadingIndicator()
 
@@ -187,41 +191,48 @@ fun AdminBookingsScreen(
                 else -> state.bookings
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (!state.isLoading && displayBookings.isEmpty()) {
-                    Text(
-                        "No hay reservas",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        item { Spacer(modifier = Modifier.height(4.dp)) }
-                        // key estable para que Compose detecte cambios por id y recomponga correctamente
-                        items(displayBookings, key = { it.id }) { booking ->
-                            AdminBookingCard(
-                                booking = booking,
-                                onChangeStatus = { newStatus ->
-                                    changeStatusTarget = booking to newStatus
-                                },
-                                // Edición solo permitida en PENDING y CONFIRMED; MODIFIED_PENDING no
-                                onEdit = if (booking.status.uppercase() in listOf("PENDING", "CONFIRMED")) {
-                                    { viewModel.showEditDialog(booking) }
-                                } else null,
-                            )
+            // Pull-to-refresh habilitado solo cuando el filtro activo es "Todos" (statusFilter == null)
+            SwipeRefresh(
+                state = swipeRefreshState,
+                onRefresh = { viewModel.refresh() },
+                swipeEnabled = state.statusFilter == null,
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (!state.isLoading && displayBookings.isEmpty()) {
+                        Text(
+                            "No hay reservas",
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            item { Spacer(modifier = Modifier.height(4.dp)) }
+                            // key estable para que Compose detecte cambios por id y recomponga correctamente
+                            items(displayBookings, key = { it.id }) { booking ->
+                                AdminBookingCard(
+                                    booking = booking,
+                                    onChangeStatus = { newStatus ->
+                                        changeStatusTarget = booking to newStatus
+                                    },
+                                    // Edición solo permitida en PENDING y CONFIRMED; MODIFIED_PENDING no
+                                    onEdit = if (booking.status.uppercase() in listOf("PENDING", "CONFIRMED")) {
+                                        { viewModel.showEditDialog(booking) }
+                                    } else null,
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(8.dp)) }
                         }
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
-                }
 
-                ErrorOverlay(
-                    message = state.error ?: "",
-                    visible = state.error != null,
-                    onDismiss = viewModel::clearError,
-                )
+                    ErrorOverlay(
+                        message = state.error ?: "",
+                        visible = state.error != null,
+                        onDismiss = viewModel::clearError,
+                    )
+                }
             }
         }
     }

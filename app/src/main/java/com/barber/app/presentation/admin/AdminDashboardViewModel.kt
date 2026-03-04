@@ -19,9 +19,12 @@ data class AdminDashboardUiState(
     val nombres: String = "",
     val role: String = "",
     val isLoggedOut: Boolean = false,
-    /** Cantidad de reservas pendientes — muestra AlertDialog al abrir el dashboard */
+    /** Reservas PENDING nuevas pendientes de aprobación */
     val pendingCount: Int = 0,
     val showPendingAlert: Boolean = false,
+    /** Reservas MODIFIED_PENDING: cliente modificó y espera aprobación del admin */
+    val modifiedPendingCount: Int = 0,
+    val showModifiedPendingAlert: Boolean = false,
 )
 
 @HiltViewModel
@@ -32,10 +35,12 @@ class AdminDashboardViewModel @Inject constructor(
 ) : ViewModel() {
 
     // Estado separado para controlar la navegación de logout (corrige bug: nunca se activaba)
-    private val _loggedOut       = MutableStateFlow(false)
-    private val _pendingCount    = MutableStateFlow(0)
-    // Muestra el AlertDialog de reservas pendientes una sola vez al abrir
-    private val _showPendingAlert = MutableStateFlow(false)
+    private val _loggedOut              = MutableStateFlow(false)
+    private val _pendingCount           = MutableStateFlow(0)
+    private val _modifiedPendingCount   = MutableStateFlow(0)
+    // Muestra el AlertDialog de reservas pendientes una sola vez al abrir; en orden de prioridad
+    private val _showPendingAlert         = MutableStateFlow(false)
+    private val _showModifiedPendingAlert = MutableStateFlow(false)
 
     val uiState: StateFlow<AdminDashboardUiState> = combine(
         userPreferencesRepository.userPreferences,
@@ -50,6 +55,11 @@ class AdminDashboardViewModel @Inject constructor(
             pendingCount = pendingCount,
             showPendingAlert = showAlert,
         )
+    }.combine(_modifiedPendingCount) { state, modifiedCount ->
+        // Agrega conteo de MODIFIED_PENDING en cadena para evitar combine de 5+ flujos
+        state.copy(modifiedPendingCount = modifiedCount)
+    }.combine(_showModifiedPendingAlert) { state, showModified ->
+        state.copy(showModifiedPendingAlert = showModified)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -57,24 +67,37 @@ class AdminDashboardViewModel @Inject constructor(
     )
 
     init {
-        loadPendingCount()
+        loadPendingCounts()
     }
 
-    /** Carga las reservas PENDING y muestra AlertDialog si hay al menos una */
-    private fun loadPendingCount() {
+    /** Carga reservas PENDING y MODIFIED_PENDING en una sola llamada; muestra alertas en orden de prioridad */
+    private fun loadPendingCounts() {
         viewModelScope.launch {
-            when (val result = bookingRepository.getAllBookings(status = "PENDING")) {
+            // Carga todas las reservas sin filtro para contar por estado en el cliente
+            when (val result = bookingRepository.getAllBookings(status = null)) {
                 is Resource.Success -> {
-                    val count = result.data.size
-                    _pendingCount.value = count
-                    _showPendingAlert.value = count > 0
+                    val pending  = result.data.count { it.status.uppercase() == "PENDING" }
+                    val modified = result.data.count { it.status.uppercase() == "MODIFIED_PENDING" }
+                    _pendingCount.value = pending
+                    _modifiedPendingCount.value = modified
+                    // Prioridad: primero PENDING; si no hay, mostrar MODIFIED_PENDING
+                    when {
+                        pending  > 0 -> _showPendingAlert.value = true
+                        modified > 0 -> _showModifiedPendingAlert.value = true
+                    }
                 }
                 else -> Unit
             }
         }
     }
 
-    fun dismissPendingAlert() { _showPendingAlert.value = false }
+    /** Al cerrar el alert de PENDING, mostrar el de MODIFIED_PENDING si corresponde */
+    fun dismissPendingAlert() {
+        _showPendingAlert.value = false
+        if (_modifiedPendingCount.value > 0) _showModifiedPendingAlert.value = true
+    }
+
+    fun dismissModifiedPendingAlert() { _showModifiedPendingAlert.value = false }
 
     fun logout() {
         viewModelScope.launch {

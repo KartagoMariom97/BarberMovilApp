@@ -58,7 +58,7 @@ fun AdminDashboardScreen(
         if (uiState.isLoggedOut) onLogout()
     }
 
-    // AlertDialog con conteo de reservas pendientes al abrir el dashboard
+    // 1️⃣ AlertDialog: reservas nuevas PENDING (mayor prioridad)
     if (uiState.showPendingAlert) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissPendingAlert() },
@@ -66,7 +66,7 @@ fun AdminDashboardScreen(
             title = { Text("Reservas Pendientes", color = Color.Black) },
             text = {
                 Text(
-                    "Tienes ${uiState.pendingCount} reserva(s) pendiente(s) de atención.",
+                    "Tienes ${uiState.pendingCount} reserva(s) nuevas pendientes de aprobación.",
                     color = Color.Black,
                 )
             },
@@ -78,6 +78,33 @@ fun AdminDashboardScreen(
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissPendingAlert() }) {
+                    Text("Más tarde", color = Color.Black)
+                }
+            },
+        )
+    }
+
+    // 2️⃣ AlertDialog: reservas MODIFIED_PENDING (cliente modificó, espera aprobación)
+    // Se muestra solo después de cerrar el anterior (nunca simultáneamente)
+    if (uiState.showModifiedPendingAlert) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissModifiedPendingAlert() },
+            containerColor = Color.White,
+            title = { Text("Modificaciones Pendientes", color = Color.Black) },
+            text = {
+                Text(
+                    "Tienes ${uiState.modifiedPendingCount} reserva(s) modificadas por clientes que requieren tu revisión.",
+                    color = Color.Black,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.dismissModifiedPendingAlert()
+                    onNavigateToBookings()
+                }) { Text("Ver Reservas", color = Color.Black) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissModifiedPendingAlert() }) {
                     Text("Más tarde", color = Color.Black)
                 }
             },

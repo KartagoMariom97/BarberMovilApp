@@ -17,6 +17,8 @@ import javax.inject.Inject
 data class AdminServicesState(
     val services: List<Service> = emptyList(),
     val isLoading: Boolean = false,
+    // Indica que se está refrescando via pull-to-refresh
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
 )
@@ -116,6 +118,18 @@ class AdminServicesViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> _state.update { it.copy(error = result.message, isLoading = false) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    /** Pull-to-refresh: recarga sin loading indicator de pantalla completa */
+    fun refresh() {
+        viewModelScope.launch {
+            _state.update { it.copy(isRefreshing = true) }
+            when (val result = repository.getAllServices()) {
+                is Resource.Success -> _state.update { it.copy(services = result.data, isRefreshing = false) }
+                is Resource.Error   -> _state.update { it.copy(error = result.message, isRefreshing = false) }
                 is Resource.Loading -> Unit
             }
         }
