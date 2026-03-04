@@ -1,14 +1,20 @@
 package com.barber.app.presentation.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.barber.app.core.common.Resource
+import com.barber.app.domain.repository.NotificationRepository
 import com.barber.app.domain.usecase.LoginUseCase
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class LoginState(
@@ -23,7 +29,9 @@ data class LoginState(
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    // [FIX] inyectado para registrar FCM token post-login
+    private val notificationRepository: NotificationRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -59,6 +67,15 @@ class LoginViewModel @Inject constructor(
             _state.value = _state.value.copy(isLoading = true, error = null)
             when (val result = loginUseCase(_state.value.email, _state.value.password)) {
                 is Resource.Success -> {
+                    // [FIX] registrar FCM token post-login; el token ya existe localmente
+                    // así que await() es inmediato y no retrasa la navegación perceptiblemente.
+                    // Si falla (red, backend), se loguea y la navegación continúa igual.
+                    runCatching {
+                        val fcmToken = FirebaseMessaging.getInstance().token.await()
+                        withContext(Dispatchers.IO) { notificationRepository.updateFcmToken(fcmToken) }
+                    }.onFailure { e ->
+                        Log.e("FCM_TOKEN", "Error registrando FCM token post-login cliente: ${e.message}")
+                    }
                     _state.value = _state.value.copy(isLoading = false, isSuccess = true)
                 }
                 is Resource.Error -> {

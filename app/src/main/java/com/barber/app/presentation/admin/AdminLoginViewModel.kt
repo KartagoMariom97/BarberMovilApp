@@ -1,16 +1,22 @@
 package com.barber.app.presentation.admin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.barber.app.core.common.Resource
 import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.domain.repository.AuthRepository
+import com.barber.app.domain.repository.NotificationRepository
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class AdminLoginState(
@@ -27,6 +33,8 @@ data class AdminLoginState(
 class AdminLoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    // [FIX] inyectado para registrar FCM token post-login admin/barber
+    private val notificationRepository: NotificationRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdminLoginState())
@@ -66,6 +74,14 @@ class AdminLoginViewModel @Inject constructor(
             )) {
                 is Resource.Success -> {
                     val prefs = userPreferencesRepository.userPreferences.first()
+                    // [FIX] registrar FCM token post-login admin/barber;
+                    // sin esto el token queda NULL en BD y las notificaciones nunca llegan.
+                    runCatching {
+                        val fcmToken = FirebaseMessaging.getInstance().token.await()
+                        withContext(Dispatchers.IO) { notificationRepository.updateFcmToken(fcmToken) }
+                    }.onFailure { e ->
+                        Log.e("FCM_TOKEN", "Error registrando FCM token post-login admin: ${e.message}")
+                    }
                     _state.value = _state.value.copy(
                         isLoading = false,
                         isSuccess = true,

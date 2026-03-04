@@ -48,6 +48,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -98,9 +99,15 @@ class MainActivity : ComponentActivity() {
 
             if (prefs.isLoggedIn && prefs.token.isNotEmpty()) {
                 stompWebSocketManager.connect(Constants.WS_URL, prefs.token)
+                // [FIX] withContext en lugar de launch: así runCatching captura errores
+                // de updateFcmToken (red, 401, etc.) y no quedan silenciados.
+                // Con launch interno, la excepción escapaba al lifecycleScope padre
+                // y el fcm_token quedaba NULL en BD sin ningún aviso.
                 runCatching {
                     val fcmToken = FirebaseMessaging.getInstance().token.await()
-                    launch(Dispatchers.IO) { notificationRepository.updateFcmToken(fcmToken) }
+                    withContext(Dispatchers.IO) { notificationRepository.updateFcmToken(fcmToken) }
+                }.onFailure { e ->
+                    Log.e("FCM_TOKEN", "Error registrando FCM token en backend: ${e.message}")
                 }
             }
 

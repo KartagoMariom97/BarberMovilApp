@@ -26,6 +26,13 @@
             </intent-filter>
         </activity>
 
+        <!-- [FIX] Canal por defecto para notificaciones FCM recibidas en background/killed.
+             Sin esto, FCM usa 'fcm_fallback_notification_channel' (importancia baja)
+             y las notificaciones pueden aparecer silenciosas en Android 8+. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="appointment_reminders" />
+
         <service
             android:name=".service.BarberFirebaseMessagingService"
             android:exported="false">

@@ -26,13 +26,22 @@ class BarberFirebaseMessagingService : FirebaseMessagingService() {
     lateinit var notificationEventManager: NotificationEventManager
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        val title     = remoteMessage.notification?.title ?: "Actualización de Reserva"
-        val body      = remoteMessage.notification?.body ?: ""
+        // [FIX] Fallback a campos data[] cuando notification payload no está disponible.
+        // Con notification+data, onMessageReceived solo se llama en foreground.
+        // En background/killed, FCM muestra la notificación automáticamente usando
+        // el canal 'appointment_reminders' (configurado en AndroidManifest y AndroidConfig del backend).
+        val title     = remoteMessage.notification?.title
+                        ?: remoteMessage.data["title"]
+                        ?: "Actualización de Reserva"
+        val body      = remoteMessage.notification?.body
+                        ?: remoteMessage.data["body"]
+                        ?: ""
         val bookingId = remoteMessage.data["bookingId"]?.toLongOrNull() ?: 0L
         val status    = remoteMessage.data["status"] ?: ""
         val type      = remoteMessage.data["type"] ?: ""
 
-        // Siempre mostrar la notificación del sistema (funciona en background y foreground)
+        // Siempre mostrar la notificación del sistema (foreground únicamente vía este path;
+        // background/killed es manejado automáticamente por FCM SDK)
         NotificationHelper.showBookingStatusUpdate(applicationContext, bookingId, title, body)
 
         // Si la reserva fue confirmada, señalizar para mostrar AlertDialog en la app
