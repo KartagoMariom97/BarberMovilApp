@@ -372,7 +372,8 @@ private fun ServiceSelectionStep(state: BookingState, viewModel: BookingViewMode
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(state.services) { service ->
+            // Filtro defensivo: excluir servicios inactivos aunque vengan de caché
+            items(state.services.filter { it.active }) { service ->
                 ServiceCard(
                     service = service,
                     isSelected = state.selectedServices.contains(service.id),

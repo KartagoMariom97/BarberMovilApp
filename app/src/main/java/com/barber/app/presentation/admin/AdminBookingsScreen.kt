@@ -502,7 +502,8 @@ private fun EditBookingDialog(
                                             .heightIn(max = 220.dp)
                                             .verticalScroll(rememberScrollState()),
                                     ) {
-                                        services.forEach { svc ->
+                                        // Filtro defensivo: solo servicios activos para creación de reserva
+                                        services.filter { it.active }.forEach { svc ->
                                             val isChecked = selectedServiceIds.contains(svc.id)
                                             Row(
                                                 modifier = Modifier
@@ -783,7 +784,8 @@ private fun CreateBookingDialog(
                                             .heightIn(max = 220.dp)
                                             .verticalScroll(rememberScrollState()),
                                     ) {
-                                        services.forEach { svc ->
+                                        // Filtro defensivo: solo servicios activos para edición de reserva
+                                        services.filter { it.active }.forEach { svc ->
                                             val isChecked = selectedServiceIds.contains(svc.id)
                                             Row(
                                                 modifier = Modifier
