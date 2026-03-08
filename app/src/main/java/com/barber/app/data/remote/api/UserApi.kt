@@ -1,5 +1,6 @@
 package com.barber.app.data.remote.api
 
+import com.barber.app.data.remote.dto.ApiResponse
 import com.barber.app.data.remote.dto.ChangePasswordRequest
 import com.barber.app.data.remote.dto.CreateUserRequest
 import com.barber.app.data.remote.dto.UpdateUserRequest
@@ -14,17 +15,17 @@ import retrofit2.http.Path
 interface UserApi {
 
     @POST("users")
-    suspend fun createUser(@Body request: CreateUserRequest): UserResponse
+    suspend fun createUser(@Body request: CreateUserRequest): ApiResponse<UserResponse>
 
     @GET("users/{id}")
-    suspend fun getUserById(@Path("id") id: Long): UserResponse
+    suspend fun getUserById(@Path("id") id: Long): ApiResponse<UserResponse>
 
     @GET("users")
-    suspend fun getAllUsers(): List<UserResponse>
+    suspend fun getAllUsers(): ApiResponse<List<UserResponse>>
 
     @PUT("users/{id}")
-    suspend fun updateUser(@Path("id") id: Long, @Body request: UpdateUserRequest): UserResponse
+    suspend fun updateUser(@Path("id") id: Long, @Body request: UpdateUserRequest): ApiResponse<UserResponse>
 
     @PATCH("users/{id}/password")
-    suspend fun changePassword(@Path("id") id: Long, @Body request: ChangePasswordRequest)
+    suspend fun changePassword(@Path("id") id: Long, @Body request: ChangePasswordRequest): ApiResponse<Unit>
 }

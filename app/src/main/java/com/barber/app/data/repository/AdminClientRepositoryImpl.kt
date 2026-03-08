@@ -29,7 +29,8 @@ class AdminClientRepositoryImpl @Inject constructor(
 
     override suspend fun getAllClients(): Resource<List<AdminClient>> {
         return try {
-            Resource.Success(api.getAllClients().map { it.toDomain() })
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.getAllClients().data?.map { it.toDomain() } ?: emptyList())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al obtener los clientes"))
         }
@@ -81,7 +82,8 @@ class AdminClientRepositoryImpl @Inject constructor(
                     fechaNacimiento = fechaNacimiento,
                 ),
             )
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al actualizar"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al actualizar el cliente"))
         }
@@ -90,7 +92,8 @@ class AdminClientRepositoryImpl @Inject constructor(
     override suspend fun updateClientStatus(id: Long, active: Boolean): Resource<AdminClient> {
         return try {
             val response = api.updateClientStatus(id, AdminUpdateClientStatusRequest(active))
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al actualizar estado"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al actualizar el estado del cliente"))
         }

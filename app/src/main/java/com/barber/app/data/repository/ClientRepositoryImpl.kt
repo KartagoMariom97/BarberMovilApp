@@ -16,7 +16,8 @@ class ClientRepositoryImpl @Inject constructor(
 
     override suspend fun getClientProfile(clientId: Long): Resource<ClientProfile> {
         return try {
-            val response = clientApi.getClientProfile(clientId)
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val response = clientApi.getClientProfile(clientId).data ?: throw Exception("Perfil no encontrado")
             Resource.Success(response.toDomain())
         } catch (e: SocketTimeoutException) {
             Resource.Error("Tiempo de espera agotado. Verifica tu conexión e intenta de nuevo.")
@@ -43,7 +44,8 @@ class ClientRepositoryImpl @Inject constructor(
                 telefono = telefono,
                 dni = dni,
             )
-            val response = clientApi.updateClientProfile(clientId, request)
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val response = clientApi.updateClientProfile(clientId, request).data ?: throw Exception("Error al actualizar")
             Resource.Success(response.toDomain())
         } catch (e: HttpException) {
             val errorBody = e.response()?.errorBody()?.string()

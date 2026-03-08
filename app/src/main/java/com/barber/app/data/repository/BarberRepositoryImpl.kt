@@ -35,7 +35,8 @@ class BarberRepositoryImpl @Inject constructor(
             return Resource.Success(cached.toDomain())
         }
         return try {
-            val response = barberApi.getBarberById(id)
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val response = barberApi.getBarberById(id).data ?: throw Exception("Barbero no encontrado")
             barberDao.upsertAll(listOf(response.toEntity()))
             Resource.Success(response.toDomain())
         } catch (e: SocketTimeoutException) {
@@ -49,7 +50,8 @@ class BarberRepositoryImpl @Inject constructor(
 
     private suspend fun syncBarbers(): Resource<List<Barber>> {
         return try {
-            val result = barberApi.getActiveBarbers()
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val result = barberApi.getActiveBarbers().data ?: emptyList()
             barberDao.upsertAll(result.map { it.toEntity() })
             Resource.Success(result.map { it.toDomain() })
         } catch (e: SocketTimeoutException) {

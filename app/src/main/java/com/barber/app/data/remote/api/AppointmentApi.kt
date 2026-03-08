@@ -1,5 +1,6 @@
 package com.barber.app.data.remote.api
 
+import com.barber.app.data.remote.dto.ApiResponse
 import com.barber.app.data.remote.dto.BookingDetailResponse
 import com.barber.app.data.remote.dto.BookingResponse
 import com.barber.app.data.remote.dto.BookingWithServicesResponse
@@ -13,23 +14,23 @@ import retrofit2.http.Path
 interface AppointmentApi {
 
     @POST("bookings")
-    suspend fun createBooking(@Body request: CreateBookingRequest): BookingResponse
+    suspend fun createBooking(@Body request: CreateBookingRequest): ApiResponse<BookingResponse>
 
     @GET("bookings")
-    suspend fun getAllBookings(): List<BookingWithServicesResponse>
+    suspend fun getAllBookings(): ApiResponse<List<BookingWithServicesResponse>>
 
     @GET("bookings/{id}")
-    suspend fun getBookingById(@Path("id") id: Long): BookingDetailResponse
+    suspend fun getBookingById(@Path("id") id: Long): ApiResponse<BookingDetailResponse>
 
     @GET("bookings/status/{status}")
-    suspend fun getBookingsByStatus(@Path("status") status: String): List<BookingWithServicesResponse>
+    suspend fun getBookingsByStatus(@Path("status") status: String): ApiResponse<List<BookingWithServicesResponse>>
 
     @PUT("bookings/{id}/cancel")
-    suspend fun cancelBooking(@Path("id") id: Long): BookingResponse
+    suspend fun cancelBooking(@Path("id") id: Long): ApiResponse<BookingResponse>
 
     @PUT("bookings/{id}/complete")
-    suspend fun completeBooking(@Path("id") id: Long): BookingResponse
+    suspend fun completeBooking(@Path("id") id: Long): ApiResponse<BookingResponse>
 
     @PUT("bookings/{id}")
-    suspend fun updateBooking(@Path("id") bookingId: Long,@Body request: CreateBookingRequest)
+    suspend fun updateBooking(@Path("id") bookingId: Long, @Body request: CreateBookingRequest): ApiResponse<BookingResponse>
 }

@@ -30,7 +30,8 @@ class ServiceRepositoryImpl @Inject constructor(
 
     private suspend fun syncServices(): Resource<List<Service>> {
         return try {
-            val result = serviceApi.getAllServices()
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val result = serviceApi.getAllServices().data ?: emptyList()
             serviceDao.upsertAll(result.map { it.toEntity() })
             Resource.Success(result.map { it.toDomain() })
         } catch (e: SocketTimeoutException) {

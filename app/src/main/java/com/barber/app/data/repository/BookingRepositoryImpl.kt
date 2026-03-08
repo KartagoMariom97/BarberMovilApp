@@ -38,6 +38,7 @@ class BookingRepositoryImpl @Inject constructor(
         serviceIds: List<Long>,
     ): Resource<Booking> {
         return try {
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
             val response = appointmentApi.createBooking(
                 CreateBookingRequest(
                     clientId = clientId,
@@ -46,7 +47,7 @@ class BookingRepositoryImpl @Inject constructor(
                     startTime = startTime,
                     serviceIds = serviceIds,
                 )
-            )
+            ).data ?: throw Exception("Error al crear reserva")
             // Write-through: persistir en Room tras éxito en red
             val entity = BookingEntity(
                 id = response.id,
@@ -90,10 +91,12 @@ class BookingRepositoryImpl @Inject constructor(
 
     private suspend fun syncBookings(clientId: Long): Resource<List<Booking>> {
         return try {
-            val summaries = clientApi.getClientBookings(clientId)
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val summaries = clientApi.getClientBookings(clientId).data ?: emptyList()
             val bookings = summaries.map { summary ->
                 try {
-                    val detail = appointmentApi.getBookingById(summary.bookingId)
+                    // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+                    val detail = appointmentApi.getBookingById(summary.bookingId).data ?: throw Exception("Detalle no encontrado")
                     // Persistir detalle completo en Room
                     bookingDao.upsertBookings(listOf(detail.toEntity(clientId)))
                     bookingDao.deleteServiceDetails(detail.id)
@@ -111,7 +114,8 @@ class BookingRepositoryImpl @Inject constructor(
 
     override suspend fun getBookingById(id: Long): Resource<Booking> {
         return try {
-            val response = appointmentApi.getBookingById(id)
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val response = appointmentApi.getBookingById(id).data ?: throw Exception("Reserva no encontrada")
             val clientId = userPreferencesRepository.userPreferences.first().clientId
             bookingDao.upsertBookings(listOf(response.toEntity(clientId)))
             bookingDao.deleteServiceDetails(response.id)
@@ -124,7 +128,8 @@ class BookingRepositoryImpl @Inject constructor(
 
     override suspend fun cancelBooking(id: Long): Resource<Booking> {
         return try {
-            val response = appointmentApi.cancelBooking(id)
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val response = appointmentApi.cancelBooking(id).data ?: throw Exception("Error al cancelar")
             // Write-through: marcar como cancelado en Room
             bookingDao.markCancelled(id)
             Resource.Success(response.toDomain())
@@ -150,7 +155,8 @@ class BookingRepositoryImpl @Inject constructor(
 
     override suspend fun getAllBookings(): Resource<List<Booking>> {
         return try {
-            val response = appointmentApi.getAllBookings()
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            val response = appointmentApi.getAllBookings().data ?: emptyList()
             Resource.Success(response.map { it.toDomain() })
         } catch (e: Exception) {
             Resource.Error(mapNetworkException(e, "Error al obtener las reservas"))
@@ -178,7 +184,8 @@ class BookingRepositoryImpl @Inject constructor(
             )
             // Write-through: refrescar datos actualizados en Room
             try {
-                val updated = appointmentApi.getBookingById(bookingId)
+                // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+                val updated = appointmentApi.getBookingById(bookingId).data ?: throw Exception("Detalle no encontrado")
                 bookingDao.upsertBookings(listOf(updated.toEntity(clientId)))
                 bookingDao.deleteServiceDetails(bookingId)
                 bookingDao.upsertServiceDetails(updated.serviceEntities())

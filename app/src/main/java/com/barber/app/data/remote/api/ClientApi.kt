@@ -1,5 +1,6 @@
 package com.barber.app.data.remote.api
 
+import com.barber.app.data.remote.dto.ApiResponse
 import com.barber.app.data.remote.dto.ClientBookingSummaryResponse
 import com.barber.app.data.remote.dto.ClientProfileResponse
 import com.barber.app.data.remote.dto.ClientResponse
@@ -15,20 +16,23 @@ import retrofit2.http.Query
 interface ClientApi {
 
     @POST("clients/user")
-    suspend fun createClientUser(@Body request: CreateClientUserRequest): ClientResponse
+    suspend fun createClientUser(@Body request: CreateClientUserRequest): ApiResponse<ClientResponse>
 
     @GET("clients/login")
-    suspend fun loginByEmail(@Query("email") email: String): ClientProfileResponse
+    suspend fun loginByEmail(@Query("email") email: String): ApiResponse<ClientProfileResponse>
 
     @GET("clients")
-    suspend fun getAllClients(): List<ClientResponse>
+    suspend fun getAllClients(): ApiResponse<List<ClientResponse>>
 
     @GET("clients/{clientId}/profile")
-    suspend fun getClientProfile(@Path("clientId") clientId: Long): ClientProfileResponse
+    suspend fun getClientProfile(@Path("clientId") clientId: Long): ApiResponse<ClientProfileResponse>
 
     @GET("clients/{clientId}/bookings")
-    suspend fun getClientBookings(@Path("clientId") clientId: Long): List<ClientBookingSummaryResponse>
+    suspend fun getClientBookings(@Path("clientId") clientId: Long): ApiResponse<List<ClientBookingSummaryResponse>>
 
     @PUT("clients/{clientId}/profile")
-    suspend fun updateClientProfile(@Path("clientId") clientId: Long,@Body request: UpdateClientProfileRequest): ClientProfileResponse
+    suspend fun updateClientProfile(
+        @Path("clientId") clientId: Long,
+        @Body request: UpdateClientProfileRequest,
+    ): ApiResponse<ClientProfileResponse>
 }

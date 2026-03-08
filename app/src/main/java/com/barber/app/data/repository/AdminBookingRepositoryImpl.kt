@@ -33,7 +33,8 @@ class AdminBookingRepositoryImpl @Inject constructor(
         clientId: Long?,
     ): Resource<List<AdminBooking>> {
         return try {
-            Resource.Success(api.getAllBookings(status, barberId, clientId).map { it.toDomain() })
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.getAllBookings(status, barberId, clientId).data?.map { it.toDomain() } ?: emptyList())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al obtener las reservas"))
         }
@@ -41,7 +42,8 @@ class AdminBookingRepositoryImpl @Inject constructor(
 
     override suspend fun getBookingById(id: Long): Resource<AdminBooking> {
         return try {
-            Resource.Success(api.getBookingById(id).toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.getBookingById(id).data?.toDomain() ?: throw Exception("Reserva no encontrada"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al obtener la reserva"))
         }
@@ -50,7 +52,8 @@ class AdminBookingRepositoryImpl @Inject constructor(
     override suspend fun changeStatus(id: Long, status: String): Resource<AdminBooking> {
         return try {
             val response = api.changeStatus(id, AdminChangeStatusRequest(status))
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al cambiar estado"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al cambiar el estado"))
         }
@@ -97,7 +100,8 @@ class AdminBookingRepositoryImpl @Inject constructor(
                     serviceIds = serviceIds,
                 ),
             )
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al actualizar reserva"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al editar la reserva"))
         }

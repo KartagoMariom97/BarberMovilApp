@@ -52,6 +52,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // [MEJORA] Limpiar IDs al destruir el ViewModel evita memory leak en sesiones largas
+    override fun onCleared() {
+        super.onCleared()
+        notifiedConfirmedIds.clear()
+    }
+
     fun clearError() {
         _state.value = _state.value.copy(error = null)
     }

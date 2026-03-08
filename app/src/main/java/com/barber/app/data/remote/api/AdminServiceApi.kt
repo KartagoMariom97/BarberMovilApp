@@ -2,6 +2,7 @@ package com.barber.app.data.remote.api
 
 import com.barber.app.data.remote.dto.AdminCreateServiceRequest
 import com.barber.app.data.remote.dto.AdminUpdateServiceRequest
+import com.barber.app.data.remote.dto.ApiResponse
 import com.barber.app.data.remote.dto.ServiceResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -13,22 +14,22 @@ import retrofit2.http.Path
 interface AdminServiceApi {
 
     @GET("admin/services")
-    suspend fun getAllServices(): List<ServiceResponse>
+    suspend fun getAllServices(): ApiResponse<List<ServiceResponse>>
 
     @POST("admin/services")
-    suspend fun createService(@Body request: AdminCreateServiceRequest): ServiceResponse
+    suspend fun createService(@Body request: AdminCreateServiceRequest): ApiResponse<ServiceResponse>
 
     @PUT("admin/services/{id}")
     suspend fun updateService(
         @Path("id") id: Long,
         @Body request: AdminUpdateServiceRequest,
-    ): ServiceResponse
+    ): ApiResponse<ServiceResponse>
 
     // Soft delete: desactiva el servicio preservando historial de reservas
     @PATCH("admin/services/{id}/deactivate")
-    suspend fun deactivateService(@Path("id") id: Long): ServiceResponse
+    suspend fun deactivateService(@Path("id") id: Long): ApiResponse<ServiceResponse>
 
     // Reactivar servicio previamente desactivado
     @PATCH("admin/services/{id}/activate")
-    suspend fun activateService(@Path("id") id: Long): ServiceResponse
+    suspend fun activateService(@Path("id") id: Long): ApiResponse<ServiceResponse>
 }

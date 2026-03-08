@@ -29,7 +29,8 @@ class AdminServiceRepositoryImpl @Inject constructor(
 
     override suspend fun getAllServices(): Resource<List<Service>> {
         return try {
-            Resource.Success(api.getAllServices().map { it.toDomain() })
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.getAllServices().data?.map { it.toDomain() } ?: emptyList())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al obtener los servicios"))
         }
@@ -43,7 +44,8 @@ class AdminServiceRepositoryImpl @Inject constructor(
     ): Resource<Service> {
         return try {
             val response = api.createService(AdminCreateServiceRequest(name, description, estimatedMinutes, price))
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al crear servicio"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al crear el servicio"))
         }
@@ -58,7 +60,8 @@ class AdminServiceRepositoryImpl @Inject constructor(
     ): Resource<Service> {
         return try {
             val response = api.updateService(id, AdminUpdateServiceRequest(name, description, estimatedMinutes, price))
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al actualizar servicio"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al actualizar el servicio"))
         }
@@ -67,7 +70,8 @@ class AdminServiceRepositoryImpl @Inject constructor(
     override suspend fun deactivateService(id: Long): Resource<Service> {
         return try {
             // Soft delete: backend marca active = false, preserva historial
-            Resource.Success(api.deactivateService(id).toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.deactivateService(id).data?.toDomain() ?: throw Exception("Error al desactivar servicio"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al desactivar el servicio"))
         }
@@ -76,7 +80,8 @@ class AdminServiceRepositoryImpl @Inject constructor(
     override suspend fun activateService(id: Long): Resource<Service> {
         return try {
             // Reactivar servicio previamente desactivado
-            Resource.Success(api.activateService(id).toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.activateService(id).data?.toDomain() ?: throw Exception("Error al activar servicio"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al activar el servicio"))
         }

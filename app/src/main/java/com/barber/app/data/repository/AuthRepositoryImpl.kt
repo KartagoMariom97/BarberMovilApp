@@ -37,6 +37,7 @@ class AuthRepositoryImpl @Inject constructor(
         password: String
     ): Resource<Client> {
         return try {
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
             val response = clientApi.createClientUser(
                 CreateClientUserRequest(
                     nombres = nombres,
@@ -47,7 +48,7 @@ class AuthRepositoryImpl @Inject constructor(
                     telefono = telefono,
                     password = password
                 )
-            )
+            ).data!!
             val client = response.toDomain()
             userPreferencesRepository.saveSession(
                 clientId = client.codigoCliente,
@@ -75,12 +76,13 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun login(email: String, password: String): Resource<Unit> {
         return try {
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
             val response = authApi.login(
                 LoginRequest(
                     email = email.trim().lowercase(),
                     password = password
                 )
-            )
+            ).data!!
 
             userPreferencesRepository.saveAdminSession(
                 token = response.token,

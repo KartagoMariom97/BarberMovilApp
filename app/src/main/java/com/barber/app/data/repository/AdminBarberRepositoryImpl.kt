@@ -39,7 +39,8 @@ class AdminBarberRepositoryImpl @Inject constructor(
                     active = active,
                 ),
             )
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al crear barbero"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al crear el barbero"))
         }
@@ -47,7 +48,8 @@ class AdminBarberRepositoryImpl @Inject constructor(
 
     override suspend fun getAllBarbers(): Resource<List<AdminBarber>> {
         return try {
-            Resource.Success(api.getAllBarbers().map { it.toDomain() })
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.getAllBarbers().data?.map { it.toDomain() } ?: emptyList())
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al obtener los barberos"))
         }
@@ -76,7 +78,8 @@ class AdminBarberRepositoryImpl @Inject constructor(
                     fechaNacimiento = fechaNacimiento,
                 ),
             )
-            Resource.Success(response.toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(response.data?.toDomain() ?: throw Exception("Error al actualizar barbero"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al actualizar el barbero"))
         }
@@ -84,7 +87,8 @@ class AdminBarberRepositoryImpl @Inject constructor(
 
     override suspend fun toggleActive(id: Long): Resource<AdminBarber> {
         return try {
-            Resource.Success(api.toggleActive(id).toDomain())
+            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
+            Resource.Success(api.toggleActive(id).data?.toDomain() ?: throw Exception("Error al cambiar estado"))
         } catch (e: Exception) {
             Resource.Error(mapError(e, "Error al cambiar estado del barbero"))
         }
