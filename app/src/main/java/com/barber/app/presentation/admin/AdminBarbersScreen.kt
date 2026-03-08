@@ -71,6 +71,7 @@ import androidx.compose.ui.window.DialogProperties
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -254,7 +255,8 @@ private fun EditBarberDialog(
     var showFechaPicker  by remember { mutableStateOf(false) }
 
     val fechaPickerState = rememberDatePickerState()
-    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    // Fix: TimeZone UTC evita retroceso de día al convertir millis (medianoche UTC) a fecha local
+    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") } }
     val generoOptions = listOf("Masculino", "Femenino", "Otro")
 
     if (showFechaPicker) {
@@ -438,7 +440,8 @@ private fun CreateBarberDialog(
     var showFechaPicker by remember { mutableStateOf(false) }
     var submitted       by remember { mutableStateOf(false) }
     val fechaPickerState = rememberDatePickerState()
-    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    // Fix: TimeZone UTC evita retroceso de día al convertir millis (medianoche UTC) a fecha local
+    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") } }
     val generoOptions = listOf("Masculino", "Femenino", "Otro")
 
     val canCreate = nombres.isNotBlank() && fechaNacimiento.isNotBlank() &&
