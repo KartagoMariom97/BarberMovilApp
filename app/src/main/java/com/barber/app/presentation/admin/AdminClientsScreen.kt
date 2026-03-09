@@ -272,7 +272,7 @@ private fun EditClientDialog(
     val fechaPickerState = rememberDatePickerState()
     // Fix: TimeZone UTC evita retroceso de día al convertir millis (medianoche UTC) a fecha local
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") } }
-    val generoOptions = listOf("M", "F", "Otro")
+    val generoOptions = listOf("Masculino", "Femenino", "Otro")
 
     if (showFechaPicker) {
         DatePickerDialog(
@@ -335,7 +335,7 @@ private fun EditClientDialog(
                 item {
                     OutlinedTextField(
                         value = telefono,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 15) telefono = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 9) telefono = it },
                         label = { Text("Teléfono") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -346,13 +346,13 @@ private fun EditClientDialog(
                 item {
                     OutlinedTextField(
                         value = dni,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 10) dni = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 8) dni = it },
                         label = { Text("DNI") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        supportingText = { Text("Máx. 10 dígitos") },
+                        supportingText = { Text("Máx. 8 dígitos") },
                     )
                 }
                 item {
@@ -395,7 +395,7 @@ private fun EditClientDialog(
                 item {
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 50) password = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 20) password = it },
                         label = { Text("Nueva contraseña (dejar vacío para no cambiar)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -410,7 +410,7 @@ private fun EditClientDialog(
                                 )
                             }
                         },
-                        supportingText = { Text("Máx. 50 caracteres") },
+                        supportingText = { Text("Máx. 20 caracteres") },
                     )
                 }
             }
@@ -457,7 +457,7 @@ private fun CreateClientDialog(
     val fechaPickerState = rememberDatePickerState()
     // Fix: TimeZone UTC evita retroceso de día al convertir millis (medianoche UTC) a fecha local
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") } }
-    val generoOptions = listOf("M", "F", "Otro")
+    val generoOptions = listOf("Masculino", "Femenino", "Otro")
 
     val canCreate = nombres.isNotBlank() && fechaNacimiento.isNotBlank() &&
         dni.isNotBlank() && genero.isNotBlank() && telefono.isNotBlank()
@@ -503,7 +503,7 @@ private fun CreateClientDialog(
                     // Nombres — Máx. 100 caracteres
                     OutlinedTextField(
                         value = nombres,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 100) nombres = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 50) nombres = it },
                         label = { Text("Nombres*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -512,7 +512,7 @@ private fun CreateClientDialog(
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                         supportingText = {
                             if (submitted && nombres.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
-                            else Text("Máx. 100 caracteres")
+                            else Text("Máx. 50 caracteres")
                         },
                     )
                 }
@@ -547,7 +547,7 @@ private fun CreateClientDialog(
                     // DNI — Máx. 10 dígitos
                     OutlinedTextField(
                         value = dni,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 10) dni = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 8) dni = it },
                         label = { Text("DNI*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -556,7 +556,7 @@ private fun CreateClientDialog(
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                         supportingText = {
                             if (submitted && dni.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
-                            else Text("Máx. 10 dígitos")
+                            else Text("Máx. 8 dígitos")
                         },
                     )
                 }
@@ -594,10 +594,10 @@ private fun CreateClientDialog(
                     }
                 }
                 item {
-                    // Teléfono — Máx. 15 dígitos
+                    // Teléfono — Máx. 9 dígitos
                     OutlinedTextField(
                         value = telefono,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 15) telefono = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 9) telefono = it },
                         label = { Text("Teléfono*") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -606,7 +606,7 @@ private fun CreateClientDialog(
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                         supportingText = {
                             if (submitted && telefono.isBlank()) Text("Campo requerido", color = Color(0xFFE53935))
-                            else Text("Máx. 15 dígitos")
+                            else Text("Máx. 9 dígitos")
                         },
                     )
                 }
@@ -627,14 +627,14 @@ private fun CreateClientDialog(
                     // Contraseña con toggle de visibilidad — Máx. 50 caracteres (campo opcional)
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { if (!it.contains('\n') && it.length <= 50) password = it },
+                        onValueChange = { if (!it.contains('\n') && it.length <= 20) password = it },
                         label = { Text("Contraseña") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        supportingText = { Text("Máx. 50 caracteres") },
+                        supportingText = { Text("Máx. 20 caracteres") },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)

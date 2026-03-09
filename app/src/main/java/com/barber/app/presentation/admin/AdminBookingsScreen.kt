@@ -190,10 +190,10 @@ fun AdminBookingsScreen(
 
             // [MEJORA] Migrado de accompanist-swiperefresh a Material3 PullToRefreshBox (nativo)
             // Pull-to-refresh habilitado solo cuando el filtro activo es "Todos" (statusFilter == null)
+            // [FIX] PullToRefreshBox no acepta 'enabled'; se deshabilita pasando lambda vacío cuando hay filtro activo
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
-                onRefresh = { viewModel.refresh() },
-                enabled = state.statusFilter == null,
+                onRefresh = if (state.statusFilter == null) {{ viewModel.refresh() }} else {{}},
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     if (!state.isLoading && displayBookings.isEmpty()) {

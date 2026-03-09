@@ -47,6 +47,12 @@ android {
         }
     }
 
+    // [FIX] Bug de incompatibilidad entre lifecycle-lint y Kotlin Analysis API (IncompatibleClassChangeError).
+    // El detector NonNullableMutableLiveDataDetector crashea con la versión actual del compilador Kotlin.
+    lint {
+        disable += "NullSafeMutableLiveData"
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true

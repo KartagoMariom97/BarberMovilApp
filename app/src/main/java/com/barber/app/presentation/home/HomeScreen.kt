@@ -179,8 +179,8 @@ fun HomeScreen(
                 }
             }
         }
-    }
 
+        // Overlays apilados sobre el contenido principal (dentro del Box)
         if (state.isLoading) {
             LoadingIndicator()
         }
