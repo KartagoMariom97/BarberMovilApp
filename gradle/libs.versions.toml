@@ -1,12 +1,13 @@
 [versions]
-agp = "8.5.2"
+agp = "8.7.3"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.27"
-coreKtx = "1.13.1"
-lifecycleRuntimeKtx = "2.8.6"
-activityCompose = "1.9.2"
-composeBom = "2024.09.03"
-hilt = "2.52"
+coreKtx = "1.15.0"
+lifecycleRuntimeKtx = "2.9.0"
+activityCompose = "1.10.1"
+# [MEJORA] Compose BOM actualizado — incluye Material3 1.3.x con PullToRefreshBox estable
+composeBom = "2025.03.01"
+hilt = "2.54"
 hiltNavigationCompose = "1.2.0"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
@@ -16,7 +17,8 @@ datastore = "1.1.1"
 workRuntime = "2.9.1"
 coroutines = "1.8.1"
 room = "2.6.1"
-firebaseBom = "33.7.0"
+# [MEJORA] Firebase BOM actualizado a versión más reciente
+firebaseBom = "33.10.0"
 googleServices = "4.4.2"
 
 [libraries]

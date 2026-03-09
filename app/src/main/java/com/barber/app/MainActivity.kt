@@ -83,7 +83,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //enableEdgeToEdge()
+        // [MEJORA] enableEdgeToEdge: contenido se extiende bajo barras del sistema (diseño inmersivo)
+        enableEdgeToEdge()
         requestNotificationPermission()
 
         lifecycleScope.launch {

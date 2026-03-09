@@ -32,9 +32,8 @@ import com.barber.app.presentation.components.ErrorMessage
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
 
-// 🔥 NUEVOS IMPORTS PARA PULL TO REFRESH
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 // [FIX-FILTERS] Necesario para scroll horizontal de chips cuando hay 5 opciones
 import androidx.compose.foundation.horizontalScroll
@@ -58,6 +57,7 @@ private val FILTER_OPTIONS = listOf(
     "COMPLETED" to "Completadas",
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppointmentsScreen(
     onNavigateToBooking: (() -> Unit)? = null,
@@ -67,7 +67,6 @@ fun AppointmentsScreen(
     var selectedBooking by remember { mutableStateOf<Booking?>(null) }
     // Filtro activo — "TODAS" muestra todo excepto COMPLETED
     var activeFilter by remember { mutableStateOf("TODAS") }
-    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = state.isRefreshing)
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadBookings(isRefresh = true)
@@ -123,8 +122,9 @@ fun AppointmentsScreen(
                         )
                     }
                     else -> {
-                        SwipeRefresh(
-                            state = swipeRefreshState,
+                        // [MEJORA] Migrado de accompanist-swiperefresh a Material3 PullToRefreshBox (nativo)
+                        PullToRefreshBox(
+                            isRefreshing = state.isRefreshing,
                             onRefresh = { viewModel.loadBookings(isRefresh = true) },
                         ) {
                             LazyColumn(

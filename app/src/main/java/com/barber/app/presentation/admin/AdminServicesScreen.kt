@@ -46,8 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.barber.app.domain.model.Service
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
@@ -62,7 +61,6 @@ fun AdminServicesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var editingService by remember { mutableStateOf<Service?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
-    val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
     // Soft delete: confirmar desactivación (ya no eliminación física)
     var deactivatingServiceId by remember { mutableStateOf<Long?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -92,8 +90,9 @@ fun AdminServicesScreen(
             }
         },
     ) { padding ->
-        SwipeRefresh(
-            state = swipeRefreshState,
+        // [MEJORA] Migrado de accompanist-swiperefresh a Material3 PullToRefreshBox (nativo)
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.refresh() },
         ) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {

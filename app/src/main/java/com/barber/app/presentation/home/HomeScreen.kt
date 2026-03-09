@@ -42,9 +42,10 @@ import com.barber.app.presentation.components.DetailOverlay
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
 
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToBooking: () -> Unit,
@@ -53,12 +54,6 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var selectedBooking by remember { mutableStateOf<Booking?>(null) }
-
-    // 🔥🔥🔥 CAMBIO PRINCIPAL
-    // Este estado controla el indicador circular de SwipeRefresh
-    val swipeRefreshState = rememberSwipeRefreshState(
-        isRefreshing = state.isLoading
-    )
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadData()
@@ -135,15 +130,12 @@ fun HomeScreen(
 
             // ── Lista de próximas citas (scrolleable) ────────────────────
 
-            Box(
-                modifier = Modifier.fillMaxSize()
+            // [MEJORA] Migrado de accompanist-swiperefresh a Material3 PullToRefreshBox (nativo)
+            PullToRefreshBox(
+                modifier = Modifier.fillMaxSize(),
+                isRefreshing = state.isLoading,
+                onRefresh = { viewModel.loadData() },
             ) {
-                SwipeRefresh(
-                    state = swipeRefreshState,
-                    onRefresh = {
-                        viewModel.loadData() // Se ejecuta al hacer swipe
-                    }
-                ){
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),

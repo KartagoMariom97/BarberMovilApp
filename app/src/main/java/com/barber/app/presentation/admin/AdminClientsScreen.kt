@@ -61,8 +61,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.barber.app.domain.model.AdminClient
 import com.barber.app.presentation.components.ErrorOverlay
 import com.barber.app.presentation.components.LoadingIndicator
@@ -85,8 +84,6 @@ fun AdminClientsScreen(
     var editingClient by remember { mutableStateOf<AdminClient?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var successDialogMessage by remember { mutableStateOf("") }
-    val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
-
     LaunchedEffect(state.successMessage) {
         if (state.successMessage != null) {
             successDialogMessage = state.successMessage!!
@@ -112,8 +109,9 @@ fun AdminClientsScreen(
             }
         },
     ) { padding ->
-        SwipeRefresh(
-            state = swipeRefreshState,
+        // [MEJORA] Migrado de accompanist-swiperefresh a Material3 PullToRefreshBox (nativo)
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.refresh() },
         ) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {

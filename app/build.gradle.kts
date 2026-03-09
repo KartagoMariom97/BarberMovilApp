@@ -10,12 +10,13 @@ plugins {
 
 android {
     namespace = "com.barber.app"
-    compileSdk = 34
+    // [MEJORA] compileSdk/targetSdk actualizados a Android 15 (API 35)
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.barber.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         //VERSIONAMIENTO DE LA APP
         versionCode = 2
         versionName = "1.1.0"
@@ -88,10 +89,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     debugImplementation(libs.androidx.ui.tooling)
-
-    // 🔥🔥🔥 NUEVO — Pull To Refresh ESTABLE (RECOMENDADO EN PRODUCCIÓN)
-    // Evitamos usar el API experimental de Material3
-    implementation("com.google.accompanist:accompanist-swiperefresh:0.34.0")
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
