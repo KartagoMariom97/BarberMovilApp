@@ -17,6 +17,8 @@ data class BookingEntity(
     val createdAt: String?,
     // true cuando el cliente ya usó su única modificación permitida
     val modificationUsed: Boolean = false,
+    // [F6] Timestamp (epoch ms) de la última sincronización con el servidor; null = pendiente de sync
+    val syncedAt: Long? = null,
 )
 
 fun BookingEntity.toDomain(services: List<BookingServiceDetailEntity> = emptyList()) = Booking(

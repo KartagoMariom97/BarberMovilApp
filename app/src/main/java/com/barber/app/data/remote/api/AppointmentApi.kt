@@ -10,6 +10,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AppointmentApi {
 
@@ -33,4 +34,13 @@ interface AppointmentApi {
 
     @PUT("bookings/{id}")
     suspend fun updateBooking(@Path("id") bookingId: Long, @Body request: CreateBookingRequest): ApiResponse<BookingResponse>
+
+    // [F11] Verificar disponibilidad antes de mostrar step de confirmación
+    @GET("bookings/check-availability")
+    suspend fun checkAvailability(
+        @Query("barberId") barberId: Long,
+        @Query("date") date: String,
+        @Query("startTime") startTime: String,
+        @Query("totalMinutes") totalMinutes: Int,
+    ): ApiResponse<Boolean>
 }

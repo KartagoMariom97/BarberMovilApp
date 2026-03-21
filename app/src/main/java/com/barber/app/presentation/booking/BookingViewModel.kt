@@ -7,6 +7,7 @@ import com.barber.app.core.datastore.UserPreferencesRepository
 import com.barber.app.domain.model.Barber
 import com.barber.app.domain.model.Booking
 import com.barber.app.domain.model.Service
+import com.barber.app.domain.usecase.CheckAvailabilityUseCase
 import com.barber.app.domain.usecase.CreateBookingUseCase
 import com.barber.app.domain.usecase.GetBarbersUseCase
 import com.barber.app.domain.usecase.GetServicesUseCase
@@ -40,6 +41,8 @@ class BookingViewModel @Inject constructor(
     private val getServicesUseCase: GetServicesUseCase,
     private val createBookingUseCase: CreateBookingUseCase,
     private val userPreferencesRepository: UserPreferencesRepository,
+    // [F11] Verifica disponibilidad del barbero antes de avanzar a confirmación
+    private val checkAvailabilityUseCase: CheckAvailabilityUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BookingState())
@@ -141,7 +144,8 @@ class BookingViewModel @Inject constructor(
                     _state.value = s.copy(error = "Selecciona fecha y hora")
                     return
                 }
-                _state.value = s.copy(currentStep = BookingStep.CONFIRMATION, error = null)
+                // [F11] Validar disponibilidad del barbero antes de mostrar la confirmación
+                validateAvailabilityAndAdvance(s)
             }
             BookingStep.CONFIRMATION -> confirmBooking()
         }
@@ -162,6 +166,33 @@ class BookingViewModel @Inject constructor(
         if (stepIndex < currentIndex) {
             val targetStep = BookingStep.entries[stepIndex]
             _state.value = _state.value.copy(currentStep = targetStep, error = null)
+        }
+    }
+
+    // [F11] Verifica disponibilidad async; avanza a CONFIRMATION si OK o muestra error
+    private fun validateAvailabilityAndAdvance(s: BookingState) {
+        val normalizedTime = if (s.selectedTime.matches(Regex("\\d{2}:\\d{2}")))
+            "${s.selectedTime}:00" else s.selectedTime
+        val totalMinutes = s.services
+            .filter { it.id in s.selectedServices }
+            .sumOf { it.estimatedMinutes }
+
+        viewModelScope.launch {
+            _state.value = s.copy(isLoading = true, error = null)
+            val available = checkAvailabilityUseCase(
+                barberId = s.selectedBarber!!.codigoBarbero,
+                date = s.selectedDate,
+                startTime = normalizedTime,
+                totalMinutes = totalMinutes,
+            )
+            _state.value = if (available) {
+                _state.value.copy(currentStep = BookingStep.CONFIRMATION, isLoading = false)
+            } else {
+                _state.value.copy(
+                    isLoading = false,
+                    error = "El barbero no está disponible en ese horario. Por favor elige otro.",
+                )
+            }
         }
     }
 

@@ -76,6 +76,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barber.app.presentation.components.BarberCard
 import com.barber.app.presentation.components.DetailOverlay
 import com.barber.app.presentation.components.ErrorOverlay
+import com.barber.app.presentation.components.BookingStepSkeleton
 import com.barber.app.presentation.components.LoadingIndicator
 import com.barber.app.presentation.components.ServiceCard
 import com.barber.app.presentation.components.ServiceDetailContent
@@ -299,15 +300,17 @@ fun BookingScreen(
                     onStepClick = { step -> viewModel.goToStep(step) },
                 )
 
-                if (state.isLoading) {
+                // [F7] CONFIRMATION usa LoadingIndicator (overlay total durante submit);
+                // BARBER y SERVICES usan shimmer inline para mejor UX durante carga de listas
+                if (state.isLoading && state.currentStep == BookingStep.CONFIRMATION) {
                     LoadingIndicator()
                     return@Column
                 }
 
                 when (state.currentStep) {
-                    BookingStep.BARBER -> BarberSelectionStep(state, viewModel)
-                    BookingStep.SERVICES -> ServiceSelectionStep(state, viewModel)
-                    BookingStep.DATETIME -> DateTimeStep(state, viewModel)
+                    BookingStep.BARBER    -> if (state.isLoading) BookingStepSkeleton() else BarberSelectionStep(state, viewModel)
+                    BookingStep.SERVICES  -> if (state.isLoading) BookingStepSkeleton() else ServiceSelectionStep(state, viewModel)
+                    BookingStep.DATETIME  -> DateTimeStep(state, viewModel)
                     BookingStep.CONFIRMATION -> ConfirmationStep(state, viewModel)
                 }
             }

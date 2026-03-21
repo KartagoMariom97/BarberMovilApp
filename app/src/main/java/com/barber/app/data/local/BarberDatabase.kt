@@ -20,7 +20,7 @@ import com.barber.app.data.local.entity.ServiceEntity
         BookingEntity::class,
         BookingServiceDetailEntity::class,
     ],
-    version = 3, // v3: agrega columna active en services (soft delete)
+    version = 4, // v4: agrega syncedAt en bookings y barbers para offline queue [F6]
     exportSchema = false,
 )
 abstract class BarberDatabase : RoomDatabase() {
@@ -40,6 +40,14 @@ abstract class BarberDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE services ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        // [F6] Migración v3→v4: agrega syncedAt en bookings y barbers para offline queue
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE bookings ADD COLUMN syncedAt INTEGER")
+                db.execSQL("ALTER TABLE barbers ADD COLUMN syncedAt INTEGER")
             }
         }
     }

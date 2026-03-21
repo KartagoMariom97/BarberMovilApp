@@ -132,6 +132,8 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation("com.google.firebase:firebase-analytics")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+    // [F9] Autenticación biométrica — huella / reconocimiento facial en login
+    implementation("androidx.biometric:biometric:1.1.0")
 
     // [F5] Paging 3 — paginación reactiva con Jetpack Compose
     implementation("androidx.paging:paging-runtime-ktx:3.3.2")

@@ -19,4 +19,12 @@ interface BarberDao {
 
     @Query("DELETE FROM barbers")
     suspend fun clearAll()
+
+    // [F6] Offline queue — devuelve barberos pendientes de sincronizar con el servidor
+    @Query("SELECT * FROM barbers WHERE syncedAt IS NULL")
+    suspend fun getPendingSync(): List<BarberEntity>
+
+    // [F6] Marca un barbero como sincronizado con timestamp epoch ms
+    @Query("UPDATE barbers SET syncedAt = :timestamp WHERE codigoBarbero = :id")
+    suspend fun markSynced(id: Long, timestamp: Long)
 }

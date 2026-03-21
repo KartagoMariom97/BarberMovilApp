@@ -33,4 +33,12 @@ interface BookingDao {
 
     @Query("DELETE FROM booking_service_details")
     suspend fun clearAllDetails()
+
+    // [F6] Offline queue — devuelve reservas pendientes de sincronizar con el servidor
+    @Query("SELECT * FROM bookings WHERE syncedAt IS NULL ORDER BY fechaReserva DESC")
+    suspend fun getPendingSync(): List<BookingEntity>
+
+    // [F6] Marca una reserva como sincronizada con timestamp epoch ms
+    @Query("UPDATE bookings SET syncedAt = :timestamp WHERE id = :id")
+    suspend fun markSynced(id: Long, timestamp: Long)
 }

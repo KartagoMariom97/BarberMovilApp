@@ -24,6 +24,8 @@ object DatabaseModule {
             .addMigrations(BarberDatabase.MIGRATION_1_2)
             // Migración v2→v3: agrega active en services (soft delete)
             .addMigrations(BarberDatabase.MIGRATION_2_3)
+            // [F6] Migración v3→v4: syncedAt en bookings y barbers para offline queue
+            .addMigrations(BarberDatabase.MIGRATION_3_4)
             .build()
 
     @Provides

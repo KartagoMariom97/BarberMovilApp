@@ -13,6 +13,8 @@ data class BarberEntity(
     val telefono: String?,
     val active: Boolean,
     val createdAt: String?,
+    // [F6] Timestamp (epoch ms) de la última sincronización con el servidor; null = pendiente de sync
+    val syncedAt: Long? = null,
 )
 
 fun BarberEntity.toDomain() = Barber(
