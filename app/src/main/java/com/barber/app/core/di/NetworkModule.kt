@@ -1,5 +1,6 @@
 package com.barber.app.core.di
 
+import com.barber.app.BuildConfig
 import com.barber.app.core.common.Constants
 import com.barber.app.core.network.AuthAuthenticator
 import com.barber.app.core.network.AuthInterceptor
@@ -46,8 +47,11 @@ object NetworkModule {
         authInterceptor: AuthInterceptor,
         authAuthenticator: AuthAuthenticator,
     ): OkHttpClient {
+        // [F3] BODY solo en debug — en release NONE para no exponer tokens, passwords
+        // ni datos sensibles en Logcat de dispositivos en producción
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    else HttpLoggingInterceptor.Level.NONE
         }
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
