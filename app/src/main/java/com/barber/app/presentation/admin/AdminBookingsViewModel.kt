@@ -2,6 +2,8 @@ package com.barber.app.presentation.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.barber.app.core.common.Resource
 import com.barber.app.domain.model.AdminBarber
 import com.barber.app.domain.model.AdminBooking
@@ -12,20 +14,20 @@ import com.barber.app.domain.repository.AdminBookingRepository
 import com.barber.app.domain.repository.AdminClientRepository
 import com.barber.app.domain.repository.ServiceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AdminBookingsState(
-    val bookings: List<AdminBooking> = emptyList(),
+    // [F5] bookings e isRefreshing eliminados — ahora vienen de pagedBookings / lazyPagingItems.loadState
     val statusFilter: String? = null,
     val isLoading: Boolean = false,
-    // Indica que se está refrescando via pull-to-refresh (sin loading indicator de pantalla completa)
-    val isRefreshing: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
     /** Controla visibilidad del diálogo de creación */
@@ -51,53 +53,31 @@ class AdminBookingsViewModel @Inject constructor(
     private val _state = MutableStateFlow(AdminBookingsState())
     val state: StateFlow<AdminBookingsState> = _state.asStateFlow()
 
-    init { loadBookings() }
+    // [F5] Fuente de verdad del filtro activo — flatMapLatest recrea el PagingSource al cambiar
+    private val _statusFilter = MutableStateFlow<String?>(null)
+    val statusFilter: StateFlow<String?> = _statusFilter.asStateFlow()
 
-    fun loadBookings(status: String? = _state.value.statusFilter) {
-        // [FIX-2] Cuando el filtro UI es PENDING, cargamos todo del backend (status=null)
-        // para que MODIFIED_PENDING también llegue; la UI filtra localmente ambos estados.
-        val networkStatus = if (status == "PENDING") null else status
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null, statusFilter = status) }
-            when (val result = repository.getAllBookings(status = networkStatus)) {
-                is Resource.Success -> _state.update { it.copy(bookings = result.data, isLoading = false) }
-                is Resource.Error   -> _state.update { it.copy(error = result.message, isLoading = false) }
-                is Resource.Loading -> Unit
-            }
-        }
-    }
+    // [F5] Flow paginado reactivo al filtro; cachedIn sobrevive recomposiciones y rotación de pantalla
+    val pagedBookings: Flow<PagingData<AdminBooking>> = _statusFilter
+        .flatMapLatest { status -> repository.getPagedBookings(status) }
+        .cachedIn(viewModelScope)
 
     fun changeStatus(id: Long, newStatus: String) {
         viewModelScope.launch {
             when (val result = repository.changeStatus(id, newStatus)) {
-                is Resource.Success -> {
-                    _state.update { state ->
-                        state.copy(
-                            bookings = state.bookings.map { if (it.id == id) result.data else it },
-                            successMessage = "Estado actualizado a $newStatus",
-                        )
-                    }
-                }
-                is Resource.Error -> _state.update { it.copy(error = result.message) }
+                // [F5] Ya no actualizamos state.bookings — la pantalla llama lazyPagingItems.refresh()
+                // al detectar successMessage para recargar desde el servidor
+                is Resource.Success -> _state.update { it.copy(successMessage = "Estado actualizado a $newStatus") }
+                is Resource.Error   -> _state.update { it.copy(error = result.message) }
                 is Resource.Loading -> Unit
             }
         }
     }
 
-    fun setFilter(status: String?) { loadBookings(status) }
-
-    /** Pull-to-refresh: recarga sin loading indicator de pantalla completa; solo disponible en filtro "Todos" */
-    fun refresh() {
-        viewModelScope.launch {
-            _state.update { it.copy(isRefreshing = true) }
-            when (val result = repository.getAllBookings(status = null)) {
-                is Resource.Success -> _state.update {
-                    it.copy(bookings = result.data, isRefreshing = false, statusFilter = null)
-                }
-                is Resource.Error   -> _state.update { it.copy(error = result.message, isRefreshing = false) }
-                is Resource.Loading -> Unit
-            }
-        }
+    // [F5] Actualiza _statusFilter → flatMapLatest recrea el PagingSource automáticamente
+    fun setFilter(status: String?) {
+        _statusFilter.value = status
+        _state.update { it.copy(statusFilter = status) }
     }
 
     /** Abre el diálogo y carga clientes, barberos y servicios (solo si la lista está vacía) */
@@ -145,32 +125,24 @@ class AdminBookingsViewModel @Inject constructor(
     /** Cierra el diálogo de edición */
     fun dismissEditDialog() { _state.update { it.copy(showEditDialog = false, editingBooking = null) } }
 
-    /** Actualiza la reserva y recarga la lista del servidor para reflejar los cambios correctamente */
+    /** [F5] Actualiza la reserva; la pantalla detecta successMessage y llama lazyPagingItems.refresh() */
     fun updateBooking(id: Long, barberId: Long, fechaReserva: String, startTime: String, serviceIds: List<Long>) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null, showEditDialog = false, editingBooking = null) }
             when (val result = repository.updateBooking(id, barberId, fechaReserva, startTime, serviceIds)) {
-                is Resource.Success -> {
-                    // Fix: recarga del servidor para garantizar datos completos (status, servicios)
-                    // y respetar el filtro activo (ej: si hay filtro PENDING, la reserva sigue apareciendo)
-                    _state.update { it.copy(successMessage = "Reserva actualizada exitosamente") }
-                    loadBookings()
-                }
-                is Resource.Error -> _state.update { it.copy(error = result.message, isLoading = false) }
+                is Resource.Success -> _state.update { it.copy(successMessage = "Reserva actualizada exitosamente", isLoading = false) }
+                is Resource.Error   -> _state.update { it.copy(error = result.message, isLoading = false) }
                 is Resource.Loading -> Unit
             }
         }
     }
 
-    /** Crea la reserva y recarga la lista tras éxito */
+    /** [F5] Crea la reserva; la pantalla detecta successMessage y llama lazyPagingItems.refresh() */
     fun createBooking(clientId: Long, barberId: Long, fechaReserva: String, startTime: String, serviceIds: List<Long>) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null, showCreateDialog = false) }
             when (val result = repository.createBooking(clientId, barberId, fechaReserva, startTime, serviceIds)) {
-                is Resource.Success -> {
-                    _state.update { it.copy(successMessage = "Reserva creada exitosamente") }
-                    loadBookings() // recarga la lista para mostrar la nueva reserva
-                }
+                is Resource.Success -> _state.update { it.copy(successMessage = "Reserva creada exitosamente", isLoading = false) }
                 is Resource.Error   -> _state.update { it.copy(error = result.message, isLoading = false) }
                 is Resource.Loading -> Unit
             }

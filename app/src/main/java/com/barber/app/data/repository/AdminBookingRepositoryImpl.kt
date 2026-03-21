@@ -1,12 +1,17 @@
 package com.barber.app.data.repository
 
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import com.barber.app.core.common.Resource
+import com.barber.app.data.paging.AdminBookingsPagingSource
 import com.barber.app.data.remote.api.AdminBookingApi
 import com.barber.app.data.remote.dto.AdminChangeStatusRequest
 import com.barber.app.data.remote.dto.AdminUpdateBookingRequest
 import com.barber.app.data.remote.dto.CreateBookingRequest
 import com.barber.app.domain.model.AdminBooking
 import com.barber.app.domain.repository.AdminBookingRepository
+import kotlinx.coroutines.flow.Flow
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -27,18 +32,12 @@ class AdminBookingRepositoryImpl @Inject constructor(
     private val api: AdminBookingApi,
 ) : AdminBookingRepository {
 
-    override suspend fun getAllBookings(
-        status: String?,
-        barberId: Long?,
-        clientId: Long?,
-    ): Resource<List<AdminBooking>> {
-        return try {
-            // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado
-            Resource.Success(api.getAllBookings(status, barberId, clientId).data?.map { it.toDomain() } ?: emptyList())
-        } catch (e: Exception) {
-            Resource.Error(mapError(e, "Error al obtener las reservas"))
-        }
-    }
+    // [F5] Crea un nuevo PagingSource por cada cambio de filtro (statusFilter)
+    // enablePlaceholders=false: no muestra items vacíos mientras carga la siguiente página
+    override fun getPagedBookings(statusFilter: String?): Flow<PagingData<AdminBooking>> =
+        Pager(PagingConfig(pageSize = 20, enablePlaceholders = false)) {
+            AdminBookingsPagingSource(api, statusFilter)
+        }.flow
 
     override suspend fun getBookingById(id: Long): Resource<AdminBooking> {
         return try {

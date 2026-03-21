@@ -6,6 +6,7 @@ import com.barber.app.data.remote.dto.AdminUpdateBookingRequest
 import com.barber.app.data.remote.dto.ApiResponse
 import com.barber.app.data.remote.dto.BookingResponse
 import com.barber.app.data.remote.dto.CreateBookingRequest
+import com.barber.app.data.remote.dto.PagedResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -19,12 +20,15 @@ interface AdminBookingApi {
     @POST("bookings")
     suspend fun createBooking(@Body request: CreateBookingRequest): ApiResponse<BookingResponse>
 
+    // [F5] Agrega page y size para paginación; retorna PagedResponse en lugar de List
     @GET("admin/bookings")
     suspend fun getAllBookings(
-        @Query("status") status: String? = null,
-        @Query("barberId") barberId: Long? = null,
-        @Query("clientId") clientId: Long? = null,
-    ): ApiResponse<List<AdminBookingResponse>>
+        @Query("status")   status:   String? = null,
+        @Query("barberId") barberId: Long?   = null,
+        @Query("clientId") clientId: Long?   = null,
+        @Query("page")     page:     Int     = 0,
+        @Query("size")     size:     Int     = 20,
+    ): ApiResponse<PagedResponse<AdminBookingResponse>>
 
     @GET("admin/bookings/{id}")
     suspend fun getBookingById(@Path("id") id: Long): ApiResponse<AdminBookingResponse>

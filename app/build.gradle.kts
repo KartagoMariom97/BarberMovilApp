@@ -132,4 +132,8 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation("com.google.firebase:firebase-analytics")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+    // [F5] Paging 3 — paginación reactiva con Jetpack Compose
+    implementation("androidx.paging:paging-runtime-ktx:3.3.2")
+    implementation("androidx.paging:paging-compose:3.3.2")
 }

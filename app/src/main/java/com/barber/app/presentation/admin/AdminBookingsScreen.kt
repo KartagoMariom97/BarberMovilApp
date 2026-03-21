@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -134,12 +136,20 @@ fun AdminBookingsScreen(
     viewModel: AdminBookingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // [F5] Colectar el flujo paginado; collectAsLazyPagingItems observa cambios de página y loadState
+    val lazyPagingItems = viewModel.pagedBookings.collectAsLazyPagingItems()
+    // [F5] statusFilter separado del state para que filter chips reaccionen al flujo de paginación
+    val statusFilter by viewModel.statusFilter.collectAsStateWithLifecycle()
     var changeStatusTarget by remember { mutableStateOf<Pair<AdminBooking, String>?>(null) }
 
     if (state.isLoading) LoadingIndicator()
 
     LaunchedEffect(state.successMessage) {
-        if (state.successMessage != null) viewModel.clearSuccess()
+        if (state.successMessage != null) {
+            // [F5] Refrescar la lista paginada tras mutaciones (cambio estado, crear, editar)
+            lazyPagingItems.refresh()
+            viewModel.clearSuccess()
+        }
     }
 
     Scaffold(
@@ -171,32 +181,28 @@ fun AdminBookingsScreen(
             ) {
                 statusOptions.forEach { (status, label) ->
                     FilterChip(
-                        selected = state.statusFilter == status,
+                        // [F5] Comparar con statusFilter del StateFlow, no state.statusFilter
+                        selected = statusFilter == status,
                         onClick = { viewModel.setFilter(status) },
                         label = { Text(label) },
                     )
                 }
             }
 
-            // [FIX-2] Filtrado local: cuando el filtro activo es PENDING, incluye también
-            // MODIFIED_PENDING (el backend devuelve todos para ese caso; aquí los acotamos).
-            val displayBookings = when (state.statusFilter) {
-                "PENDING" -> state.bookings.filter {
-                    val s = it.status.uppercase()
-                    s == "PENDING" || s == "MODIFIED_PENDING"
-                }
-                else -> state.bookings
-            }
+            // [F5] isRefreshing: true solo cuando hay items cargados y se está recargando (evita spinner vacío)
+            val isRefreshing = lazyPagingItems.loadState.refresh is LoadState.Loading
+                    && lazyPagingItems.itemCount > 0
 
-            // [MEJORA] Migrado de accompanist-swiperefresh a Material3 PullToRefreshBox (nativo)
-            // Pull-to-refresh habilitado solo cuando el filtro activo es "Todos" (statusFilter == null)
-            // [FIX] PullToRefreshBox no acepta 'enabled'; se deshabilita pasando lambda vacío cuando hay filtro activo
+            // [F5] PullToRefreshBox delegado a lazyPagingItems.refresh() (recarga desde página 0)
             PullToRefreshBox(
-                isRefreshing = state.isRefreshing,
-                onRefresh = if (state.statusFilter == null) {{ viewModel.refresh() }} else {{}},
+                isRefreshing = isRefreshing,
+                onRefresh = { lazyPagingItems.refresh() },
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (!state.isLoading && displayBookings.isEmpty()) {
+                    val isEmpty = lazyPagingItems.itemCount == 0
+                            && lazyPagingItems.loadState.refresh !is LoadState.Loading
+
+                    if (isEmpty && !state.isLoading) {
                         Text(
                             "No hay reservas",
                             modifier = Modifier.align(Alignment.Center),
@@ -208,8 +214,12 @@ fun AdminBookingsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             item { Spacer(modifier = Modifier.height(4.dp)) }
-                            // key estable para que Compose detecte cambios por id y recomponga correctamente
-                            items(displayBookings, key = { it.id }) { booking ->
+                            // [F5] items() con key estable via itemKey para minimizar recomposiciones
+                            items(
+                                count = lazyPagingItems.itemCount,
+                                key   = lazyPagingItems.itemKey { it.id },
+                            ) { index ->
+                                val booking = lazyPagingItems[index] ?: return@items
                                 AdminBookingCard(
                                     booking = booking,
                                     onChangeStatus = { newStatus ->
@@ -220,6 +230,15 @@ fun AdminBookingsScreen(
                                         { viewModel.showEditDialog(booking) }
                                     } else null,
                                 )
+                            }
+                            // [F5] Indicador de carga al final mientras se carga la siguiente página
+                            if (lazyPagingItems.loadState.append is LoadState.Loading) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) { CircularProgressIndicator() }
+                                }
                             }
                             item { Spacer(modifier = Modifier.height(8.dp)) }
                         }
