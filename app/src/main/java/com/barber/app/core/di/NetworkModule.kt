@@ -4,6 +4,7 @@ import com.barber.app.BuildConfig
 import com.barber.app.core.common.Constants
 import com.barber.app.core.network.AuthAuthenticator
 import com.barber.app.core.network.AuthInterceptor
+import com.barber.app.core.network.RetryInterceptor
 import com.barber.app.data.remote.api.AdminBarberApi
 import com.barber.app.data.remote.api.AuthApi
 import com.barber.app.data.remote.api.AdminBookingApi
@@ -56,6 +57,8 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
+            // [F2] Retry con exponential backoff: hasta 3 intentos en IOException/503
+            .addInterceptor(RetryInterceptor())
             .authenticator(authAuthenticator)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
