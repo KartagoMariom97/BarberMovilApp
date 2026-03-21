@@ -94,6 +94,10 @@ class AuthRepositoryImpl @Inject constructor(
             )
 
             tokenHolder.accessToken = response.token
+            tokenHolder.refreshToken = response.refreshToken
+
+            // [F1] Persistir refresh token en DataStore para sobrevivir reinicios de app
+            response.refreshToken?.let { userPreferencesRepository.saveRefreshToken(it) }
 
             Resource.Success(Unit)
 

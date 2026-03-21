@@ -27,6 +27,8 @@ class UserPreferencesRepository @Inject constructor(
         val DNI = stringPreferencesKey("dni")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         val TOKEN = stringPreferencesKey("token")
+        // [F1] Refresh token persistido en DataStore para sobrevivir reinicios de app
+        val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         val ROLE = stringPreferencesKey("role")
         val ENTITY_ID = longPreferencesKey("entity_id")
         /** IDs de reservas ya vistas por el cliente — evita mostrar el dialog más de una vez */
@@ -92,6 +94,16 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun getTokenOnce(): String? {
         return dataStore.data.map { it[TOKEN] }.firstOrNull()?.takeIf { it.isNotEmpty() }
+    }
+
+    // [F1] Persiste el refresh token para usarlo en AuthAuthenticator tras reinicio de app
+    suspend fun saveRefreshToken(refreshToken: String) {
+        dataStore.edit { it[REFRESH_TOKEN] = refreshToken }
+    }
+
+    // [F1] Recupera el refresh token de forma puntual (no Flow) para uso en Authenticator
+    suspend fun getRefreshTokenOnce(): String? {
+        return dataStore.data.map { it[REFRESH_TOKEN] }.firstOrNull()?.takeIf { it.isNotEmpty() }
     }
 
     suspend fun updateNombresEmail(nombres: String, email: String) {
