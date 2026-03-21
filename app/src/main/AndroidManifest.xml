@@ -13,6 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BarberMovilApp"
         android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="34">
 
         <activity
@@ -23,6 +24,18 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- [F10] Deep link para abrir la app desde notificaciones FCM.
+                 Uso: Intent con URI barberapp://booking?id=123 desde BarberFirebaseMessagingService.
+                 En NavGraph: navController.navigate("appointments") o pantalla de detalle. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="barberapp"
+                    android:host="booking" />
             </intent-filter>
         </activity>
 

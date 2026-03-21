@@ -101,6 +101,19 @@ class BookingViewModel @Inject constructor(
         _state.value = _state.value.copy(error = null)
     }
 
+    /**
+     * [F8] Re-ejecuta la última operación fallida según el step actual.
+     * Llamar desde la UI cuando se muestra el botón "Reintentar" en estado de error.
+     */
+    fun retry() {
+        when (_state.value.currentStep) {
+            BookingStep.BARBER        -> loadBarbers()
+            BookingStep.SERVICES      -> loadServices()
+            BookingStep.CONFIRMATION  -> confirmBooking()
+            else                      -> Unit
+        }
+    }
+
     fun resetState() {
         _state.value = BookingState(barbers = _state.value.barbers)
     }
