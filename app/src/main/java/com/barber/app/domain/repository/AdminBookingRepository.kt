@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 interface AdminBookingRepository {
     // [F5] Devuelve Flow<PagingData> para que el ViewModel construya el Pager reactivo al filtro
     fun getPagedBookings(statusFilter: String?): Flow<PagingData<AdminBooking>>
+    // Usado por AdminDashboardViewModel para contar PENDING/MODIFIED_PENDING sin paginación
+    suspend fun getAllBookings(status: String?): Resource<List<AdminBooking>>
     suspend fun getBookingById(id: Long): Resource<AdminBooking>
     suspend fun changeStatus(id: Long, status: String): Resource<AdminBooking>
     /** Crea una reserva nueva vía POST /bookings */

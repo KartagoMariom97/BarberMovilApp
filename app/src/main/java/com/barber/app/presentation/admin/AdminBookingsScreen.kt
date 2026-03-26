@@ -29,7 +29,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Close
@@ -49,6 +49,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -158,7 +159,7 @@ fun AdminBookingsScreen(
                 title = { Text("Gestión de Reservas") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
             )
@@ -423,7 +424,7 @@ private fun EditBookingDialog(
                             readOnly = true,
                             label = { Text("Barbero") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(barberExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                             singleLine = true,
                         )
                         ExposedDropdownMenu(expanded = barberExpanded, onDismissRequest = { barberExpanded = false }) {
@@ -676,7 +677,7 @@ private fun CreateBookingDialog(
                             readOnly = true,
                             label = { Text("Cliente") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(clientExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                             singleLine = true,
                         )
                         ExposedDropdownMenu(expanded = clientExpanded, onDismissRequest = { clientExpanded = false }) {
@@ -702,7 +703,7 @@ private fun CreateBookingDialog(
                             readOnly = true,
                             label = { Text("Barbero") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(barberExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                             singleLine = true,
                         )
                         ExposedDropdownMenu(expanded = barberExpanded, onDismissRequest = { barberExpanded = false }) {

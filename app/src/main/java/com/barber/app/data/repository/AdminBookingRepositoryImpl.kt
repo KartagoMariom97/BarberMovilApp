@@ -39,6 +39,16 @@ class AdminBookingRepositoryImpl @Inject constructor(
             AdminBookingsPagingSource(api, statusFilter)
         }.flow
 
+    // Carga la primera página grande (size=500) para contar estados en Dashboard sin paginación UI
+    override suspend fun getAllBookings(status: String?): Resource<List<AdminBooking>> {
+        return try {
+            val response = api.getAllBookings(status = status, size = 500)
+            Resource.Success(response.data?.content?.map { it.toDomain() } ?: emptyList())
+        } catch (e: Exception) {
+            Resource.Error(mapError(e, "Error al obtener las reservas"))
+        }
+    }
+
     override suspend fun getBookingById(id: Long): Resource<AdminBooking> {
         return try {
             // [MEJORA] ApiResponse: extrae .data del wrapper estandarizado

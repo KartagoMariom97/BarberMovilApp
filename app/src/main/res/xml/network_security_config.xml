@@ -1,28 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   [F12] Certificate pinning — protege contra ataques MITM interceptando la comunicación HTTPS.
-  PASOS PARA OBTENER EL PIN DE PRODUCCIÓN:
+  PASOS PARA AGREGAR EL PIN CUANDO SE TENGA EL CERTIFICADO DE PRODUCCIÓN:
     openssl s_client -connect <API_HOST>:443 </dev/null \
       | openssl x509 -pubkey -noout \
       | openssl pkey -pubin -outform der \
       | openssl dgst -sha256 -binary \
       | base64
-  Reemplazar "REEMPLAZAR_CON_PIN_SHA256_DEL_SERVIDOR" con el resultado.
-  Agregar un backup pin (siguiente certificado) para poder rotar sin romper la app.
+  Agregar el resultado en un bloque <pin-set> dentro del domain-config de producción.
+  Incluir siempre un pin de respaldo para poder rotar certificado sin forzar actualización de app.
 -->
 <network-security-config>
 
-    <!-- Producción: solo HTTPS + certificate pinning -->
+    <!-- Producción: solo HTTPS; el pin-set se agrega cuando se tenga el certificado real -->
     <domain-config cleartextTrafficPermitted="false">
         <!-- TODO: reemplazar con el host real del API de producción -->
         <domain includeSubdomains="true">api.barberapp.com</domain>
-
-        <pin-set expiration="2027-01-01">
-            <!-- Pin primario — SHA-256 de la clave pública del certificado de producción -->
-            <pin digest="SHA-256">REEMPLAZAR_CON_PIN_SHA256_DEL_SERVIDOR</pin>
-            <!-- Pin de respaldo — para rotación de certificado sin forzar actualización de app -->
-            <pin digest="SHA-256">REEMPLAZAR_CON_PIN_SHA256_DE_RESPALDO</pin>
-        </pin-set>
     </domain-config>
 
     <!-- Desarrollo local: permite HTTP y sin pinning -->

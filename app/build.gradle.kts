@@ -53,6 +53,26 @@ android {
         disable += "NullSafeMutableLiveData"
     }
 
+    // [FIX-WIN] Workaround para Windows: lint-cache puede quedar bloqueado por Windows Defender
+    // mientras escanea los .jar generados. doFirst pre-elimina la carpeta con PowerShell
+    // (-ErrorAction SilentlyContinue) antes de que el task Delete de Gradle lo intente,
+    // evitando el IOException "Unable to delete directory" en `gradlew clean`.
+    if (System.getProperty("os.name").lowercase().contains("windows")) {
+        tasks.named("clean") {
+            doFirst {
+                val lintCachePath = layout.buildDirectory
+                    .dir("intermediates/lint-cache").get().asFile.absolutePath
+                exec {
+                    isIgnoreExitValue = true
+                    commandLine(
+                        "powershell", "-NoProfile", "-NonInteractive", "-Command",
+                        "Remove-Item -LiteralPath '$lintCachePath' -Recurse -Force -ErrorAction SilentlyContinue"
+                    )
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
